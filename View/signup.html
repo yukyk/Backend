@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign Up</title>
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+
+<div class="login-container">
+    <div class="login-card">
+
+        <div class="login-header">
+            <h1>Create Account</h1>
+            <p>Join us and start tracking expenses</p>
+        </div>
+
+        <form class="login-form" id="signupForm">
+
+            <div class="input-group">
+                <input type="text" id="name" required>
+                <label>Full Name</label>
+                <span class="error-message" id="nameError"></span>
+            </div>
+
+            <div class="input-group">
+                <input type="email" id="email" required>
+                <label>Email</label>
+                <span class="error-message" id="emailError"></span>
+            </div>
+
+            <div class="input-group">
+                <input type="tel" id="phone" required>
+                <label>Phone Number</label>
+                <span class="error-message" id="phoneError"></span>
+            </div>
+
+            <div class="input-group">
+                <input type="password" id="password" required>
+                <label>Password</label>
+                <span class="error-message" id="passwordError"></span>
+            </div>
+
+            <button type="submit" class="submit-btn">
+                Sign Up
+            </button>
+
+        </form>
+
+        <div class="signup-link">
+            Already have an account? <a href="/">Sign in</a>
+        </div>
+
+    </div>
+</div>
+
+<script src="/signup.js"></script>
+</body>
+</html>
