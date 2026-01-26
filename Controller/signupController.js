@@ -1,7 +1,5 @@
 const User = require("../Models/signupModel");
 
-  
-
 exports.signup = async (req, res) => {
     console.log("🔥 SIGNUP API HIT 🔥");
   console.log("BODY:", req.body);
