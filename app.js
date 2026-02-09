@@ -23,6 +23,10 @@ app.get("/signup", (req, res) => {
 app.get("/", (req, res) => {
     res.sendFile(path.join(__dirname, "View", "login.html"));
 });
+app.get("/expense", (req, res) => {
+    res.sendFile(path.join(__dirname, "View", "expense.html"));
+});
+
 
 sequelize.sync().then(() => {
     app.listen(3000, () => {

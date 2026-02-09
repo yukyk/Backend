@@ -15,7 +15,7 @@ document.getElementById("loginForm").addEventListener("submit", async (e) => {
 
         if (res.ok) {
             alert("User login successful ✅");
-            window.location.href = "/login-success.html";
+            window.location.href = "/expense";
         } else {
             alert(data.message);
         }
