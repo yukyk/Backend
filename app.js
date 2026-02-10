@@ -4,12 +4,18 @@ const cors = require("cors");
 
 const authRoutes = require("./Routes/signupRoutes");
 const sequelize = require("./Utils/util");
+const Signup = require("./Models/signupModel");
+const Expense = require("./Models/expenseModel");
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Define associations
+Signup.hasMany(Expense, { foreignKey: 'userId' });
+Expense.belongsTo(Signup, { foreignKey: 'userId' });
 
 app.use("/api/auth", authRoutes);
 
@@ -28,7 +34,7 @@ app.get("/expense", (req, res) => {
 });
 
 
-sequelize.sync().then(() => {
+sequelize.sync({ alter: true }).then(() => {
     app.listen(3000, () => {
         console.log("Server running at http://localhost:3000");
     });

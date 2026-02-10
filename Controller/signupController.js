@@ -1,5 +1,6 @@
 const User = require("../Models/signupModel");
 const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
 
 
 exports.signup = async (req, res) => {
@@ -31,6 +32,12 @@ exports.signup = async (req, res) => {
 
 };
 
+function generateAccessToken(id, name) {
+  const secret = process.env.JWT_SECRET || 'replace_this_with_strong_secret';
+  // token contains only the userId (do not include sensitive info)
+  return jwt.sign({ userId: id }, secret, { expiresIn: '7d' });
+}
+
 
 exports.login = async (req, res) => {
     try{
@@ -51,7 +58,9 @@ exports.login = async (req, res) => {
       return res.status(404).json({ message: "Incorrect password" });
     }
     
-    res.status(200).json({ message: "Login successful" });
+    // Return JWT token (frontend must send as `Authorization: Bearer <token>`)
+    const token = generateAccessToken(user.id, user.name);
+    res.status(200).json({ message: "Login successful", token });
     } catch(err){
       console.error(err);
       return res.status(500).json({ message: "Internal server error" });

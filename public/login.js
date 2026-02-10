@@ -14,8 +14,18 @@ document.getElementById("loginForm").addEventListener("submit", async (e) => {
         const data = await res.json();
 
         if (res.ok) {
+            // Store JWT token in localStorage
+            if (data.token) {
+                localStorage.setItem('token', data.token);
+                console.log('✅ JWT token saved to localStorage');
+            } else {
+                console.warn('⚠️ No token in response');
+            }
             alert("User login successful ✅");
-            window.location.href = "/expense";
+            // Redirect to expense page
+            setTimeout(() => {
+                window.location.href = "/expense";
+            }, 500);
         } else {
             alert(data.message);
         }

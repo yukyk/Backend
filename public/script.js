@@ -3,9 +3,41 @@ console.log('expense script loaded');
 const form = document.getElementById('expenseForm');
 const list = document.getElementById('expenseList');
 
+// Get JWT token from localStorage
+function getToken() {
+  const token = localStorage.getItem('token');
+  console.log('Retrieved token from localStorage:', token ? 'exists' : 'missing');
+  return token;
+}
+
+// Check if user is logged in
+function checkAuth() {
+  const token = getToken();
+  if (!token) {
+    alert('Not authenticated. Please login first.');
+    window.location.href = '/';
+    return false;
+  }
+  return true;
+}
+
+// Set up axios to include JWT token in all requests
+axios.interceptors.request.use((config) => {
+  const token = getToken();
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+    console.log('Authorization header set');
+  } else {
+    console.warn('No token found in localStorage');
+  }
+  return config;
+});
+
 async function fetchExpenses(){
+  if (!checkAuth()) return;
+  
   try{
-    const res = await axios.get('/api/auth');
+    const res = await axios.get('/api/auth/get-expenses');
     const expenses = res.data || [];
     renderExpenses(expenses);
   }catch(err){
@@ -79,8 +111,10 @@ function renderExpenses(items){
     delBtn.addEventListener('click', async () => {
       const id = delBtn.dataset.id;
       if(!id) return;
+      if (!checkAuth()) return;
+      
       try{
-        await axios.delete(`/api/auth/${id}`);
+        await axios.delete(`/api/auth/delete-expense/${id}`);
         fetchExpenses();
       }catch(err){
         console.error('Delete error', err);
@@ -102,6 +136,9 @@ function renderExpenses(items){
 if(form){
   form.addEventListener('submit', async (e)=>{
     e.preventDefault();
+    
+    if (!checkAuth()) return;
+    
     const amountEl = document.getElementById('amount');
     const descriptionEl = document.getElementById('description');
     const categoryEl = document.getElementById('category');
@@ -116,15 +153,19 @@ if(form){
     }
 
     try{
-      await axios.post('/api/auth', { amount, description, category });
+      const response = await axios.post('/api/auth/add-expense', { amount, description, category });
+      console.log('Expense added successfully:', response.data);
       if(form.reset) form.reset();
       fetchExpenses();
     }catch(err){
       console.error('Add expense error', err);
-      alert('Could not add expense');
+      console.error('Error details:', err.response?.status, err.response?.data);
+      alert('Could not add expense: ' + (err.response?.data?.error || err.message));
     }
   });
 }
 
-// initial load
-fetchExpenses();
+// initial load (check auth first)
+if (checkAuth()) {
+  fetchExpenses();
+}
