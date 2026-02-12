@@ -33,15 +33,21 @@ exports.signup = async (req, res) => {
 };
 
 function generateAccessToken(id, name) {
-  const secret = process.env.JWT_SECRET || 'replace_this_with_strong_secret';
+  const secret = process.env.JWT_SECRET || 'd6d43a64dce88b8870a88bacedb429f6';
   // token contains only the userId (do not include sensitive info)
-  return jwt.sign({ userId: id }, secret, { expiresIn: '7d' });
+  const token = jwt.sign({ userId: id }, secret, { expiresIn: '7d' });
+  console.log('✅ Token generated for userId:', id);
+  console.log('✅ Token preview:', token.substring(0, 50) + '...');
+  console.log('✅ Token expiry: 7 days');
+  return token;
 }
 
 
 exports.login = async (req, res) => {
     try{
       const { email, password } = req.body;
+
+      console.log('🔐 LOGIN REQUEST - Email:', email);
 
     if (!email || !password) {
         return res.status(400).json({ message: "Email and password required" });
@@ -50,19 +56,24 @@ exports.login = async (req, res) => {
     const user = await User.findOne({ where: { email } });
 
     if (!user) {
+        console.log('❌ User not found:', email);
         return res.status(401).json({ message: "User not found" });
     }
   
     const isMatched = await bcrypt.compare(password, user.password);
     if(!isMatched){
+      console.log('❌ Password mismatch for user:', email);
       return res.status(404).json({ message: "Incorrect password" });
     }
     
+    console.log('✅ Password matched for user:', email);
+    
     // Return JWT token (frontend must send as `Authorization: Bearer <token>`)
     const token = generateAccessToken(user.id, user.name);
+    console.log('✅ Login successful - token sent to client');
     res.status(200).json({ message: "Login successful", token });
     } catch(err){
-      console.error(err);
+      console.error('❌ Login error:', err);
       return res.status(500).json({ message: "Internal server error" });
     }
 };

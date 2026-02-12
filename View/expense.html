@@ -4,6 +4,49 @@
   <meta charset="UTF-8">
   <title>Expense Tracker</title>
   <link rel="stylesheet" href="/style.css">
+  <style>
+    .page-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 30px;
+    }
+
+    .page-title {
+      margin: 0;
+      font-size: 32px;
+      color: #1a1f36;
+    }
+
+    .premium-btn {
+      background: linear-gradient(135deg, #635BFF, #5245d8);
+      color: white;
+      border: none;
+      padding: 12px 25px;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .premium-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(99, 91, 255, 0.3);
+    }
+
+    .premium-badge {
+      background: #27ae60;
+      color: white;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 700;
+      margin-left: 8px;
+    }
+  </style>
 </head>
 <body>
 </body>
@@ -11,9 +54,14 @@
   <div class="login-container">
     <div class="login-card" style="max-width:680px; width:100%;">
 
-      <div class="login-header">
-        <h1>Expense Tracker</h1>
-        <p>Add and view your expenses</p>
+      <div class="login-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
+        <div>
+          <h1 style="margin: 0 0 5px 0;">Expense Tracker</h1>
+          <p style="margin: 0;">Add and view your expenses</p>
+        </div>
+        <button class="premium-btn" onclick="goToPremium()" id="premiumBtn">
+          💎 Buy Premium
+        </button>
       </div>
 
       <form id="expenseForm" class="login-form">
@@ -53,5 +101,37 @@
 
   <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
   <script src="/script.js"></script>
+  <script>
+    // Check and update premium status
+    async function checkPremiumStatus() {
+      const token = getToken();
+      if (!token) return;
+
+      try {
+        const response = await axios.get('/api/payment/premium-status');
+        const { isPremium } = response.data;
+        
+        const premiumBtn = document.getElementById('premiumBtn');
+        if (isPremium) {
+          premiumBtn.innerHTML = '✓ Premium Member <span class="premium-badge">ACTIVE</span>';
+          premiumBtn.disabled = true;
+          premiumBtn.style.cursor = 'default';
+          premiumBtn.style.opacity = '0.7';
+        }
+      } catch (error) {
+        console.error('Error checking premium status:', error);
+      }
+    }
+
+    // Navigate to payment options
+    function goToPremium() {
+      window.location.href = '/payment-options';
+    }
+
+    // Check premium status on page load
+    window.addEventListener('load', () => {
+      setTimeout(checkPremiumStatus, 500);
+    });
+  </script>
 </body>
 </html>

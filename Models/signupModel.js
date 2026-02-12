@@ -23,6 +23,10 @@ const Signup = sequelize.define('Signup', {
     password: {
         type: DataTypes.STRING,
         allowNull: false
+    },
+    isPremium: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false
     }
 }, {
     tableName: 'signup',

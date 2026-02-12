@@ -5,6 +5,8 @@ document.getElementById("loginForm").addEventListener("submit", async (e) => {
     const password = document.getElementById("password").value.trim();
 
     try {
+        console.log('🔐 Attempting login with email:', email);
+        
         const res = await fetch("/api/auth/login", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -18,6 +20,12 @@ document.getElementById("loginForm").addEventListener("submit", async (e) => {
             if (data.token) {
                 localStorage.setItem('token', data.token);
                 console.log('✅ JWT token saved to localStorage');
+                console.log('✅ Token length:', data.token.length);
+                console.log('✅ Token preview:', data.token.substring(0, 50) + '...');
+                
+                // Verify token was saved
+                const savedToken = localStorage.getItem('token');
+                console.log('✅ Token verification - saved:', savedToken ? 'YES' : 'NO');
             } else {
                 console.warn('⚠️ No token in response');
             }
@@ -28,10 +36,11 @@ document.getElementById("loginForm").addEventListener("submit", async (e) => {
             }, 500);
         } else {
             alert(data.message);
+            console.error('❌ Login failed:', data.message);
         }
 
     } catch (err) {
         alert("Server error");
-        console.error(err);
+        console.error('❌ Login error:', err);
     }
 });
