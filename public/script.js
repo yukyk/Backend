@@ -132,6 +132,54 @@ function renderExpenses(items){
     list.appendChild(li);
   });
 }
+// Handle leaderboard button click
+function handleLeaderboard() {
+  const leaderboardBtn = document.getElementById('leaderboardBtn');
+  if (leaderboardBtn.classList.contains('locked')) {
+    alert('Buy premium membership to access the leaderboard.');
+  } else {
+    showLeaderboard();
+  }
+}
+
+// Show leaderboard
+async function showLeaderboard() {
+  try {
+    const res = await axios.get('/api/auth/leaderboard');
+    const leaderboard = res.data;
+    
+    const list = document.getElementById('leaderboardList');
+    list.innerHTML = '';
+    
+    if (leaderboard.length === 0) {
+      list.innerHTML = '<p>No expenses found.</p>';
+    } else {
+      const ul = document.createElement('ul');
+      ul.style.listStyle = 'none';
+      ul.style.padding = '0';
+      
+      leaderboard.forEach((user, index) => {
+        const li = document.createElement('li');
+        li.style.padding = '10px';
+        li.style.borderBottom = '1px solid #eee';
+        li.innerHTML = `<strong>${index + 1}. ${user.name}</strong> - $${parseFloat(user.totalExpense).toFixed(2)}`;
+        ul.appendChild(li);
+      });
+      
+      list.appendChild(ul);
+    }
+    
+    document.getElementById('leaderboardModal').style.display = 'flex';
+  } catch (err) {
+    console.error('Error fetching leaderboard:', err);
+    alert('Error loading leaderboard. Please try again.');
+  }
+}
+
+// Close modal
+function closeModal() {
+  document.getElementById('leaderboardModal').style.display = 'none';
+}
 
 if(form){
   form.addEventListener('submit', async (e)=>{

@@ -1,7 +1,8 @@
 const Expense = require('../Models/expenseModel');
+const Signup = require('../Models/signupModel');
+const sequelize = require('../Utils/util');
 
-
-// Create expense for the authenticated user. Do NOT accept userId from client.
+// Create expense for the authenticated user
 const addExpense = async (req , res) =>{
   try {
     const { amount, description, category } = req.body;
@@ -10,7 +11,6 @@ const addExpense = async (req , res) =>{
       return res.status(400).json({ error: "All fields are required" });
     }
 
-    // req.user.userId is set by auth middleware
     const userId = req.user && req.user.userId;
     if (!userId) return res.status(401).json({ error: 'Unauthorized' });
 
@@ -28,7 +28,6 @@ const addExpense = async (req , res) =>{
   }
 };
 
-
 // Get expenses belonging to authenticated user
 const getExpenses = async (req , res) =>{
   try{
@@ -42,7 +41,7 @@ const getExpenses = async (req , res) =>{
   }
 };
 
-// Delete expense only if it belongs to authenticated user
+// Delete expense
 const deleteExpense = async (req , res) =>{
   try{
     const {id} = req.params;
@@ -63,8 +62,7 @@ const deleteExpense = async (req , res) =>{
   }
 };
 
-
-// Update expense only if it belongs to authenticated user
+// Update expense
 const updateExpense = async (req , res) =>{
   try{
     const {id} = req.params;
@@ -88,5 +86,31 @@ const updateExpense = async (req , res) =>{
   }
 };
 
+// Get leaderboard - FIXED FOR MYSQL
+const getLeaderboard = async (req, res) => {
+  try {
+    const userId = req.user && req.user.userId;
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
 
-module.exports = {addExpense, getExpenses, deleteExpense, updateExpense};
+    if (!req.user.isPremium) {
+      return res.status(403).json({ error: 'Access denied. Premium membership required.' });
+    }
+
+    // Raw SQL query for better MySQL compatibility
+    const leaderboard = await sequelize.query(`
+  SELECT s.id, s.name, SUM(e.amount) as totalExpense
+  FROM signup s
+  LEFT JOIN expenses e ON s.id = e.userId
+  GROUP BY s.id, s.name
+  HAVING SUM(e.amount) > 0
+  ORDER BY totalExpense DESC
+`, { type: sequelize.QueryTypes.SELECT });
+
+    res.json(leaderboard);
+  } catch (err) {
+    console.error('Leaderboard error:', err.message);
+    res.status(500).json({ error: 'Error fetching leaderboard' });
+  }
+};
+
+module.exports = {addExpense, getExpenses, deleteExpense, updateExpense, getLeaderboard};

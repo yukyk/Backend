@@ -9,7 +9,11 @@ const Expense = sequelize.define("Expense", {
     },
     amount:{
         type: DataTypes.FLOAT,
-        allowNull: false
+        allowNull: false,
+        validate:{
+            min:1,
+            max:1000
+        }
     },
     description:{
         type: DataTypes.STRING,
@@ -21,10 +25,11 @@ const Expense = sequelize.define("Expense", {
     },
     userId:{
         type: DataTypes.INTEGER,
-        allowNull: true,
+        allowNull: false,
         references: {
             model: 'signup',
-            key: 'id'
+            key: 'id',
+            onDelete: 'CASCADE'
         }
     }
 }, {

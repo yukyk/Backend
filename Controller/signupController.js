@@ -32,11 +32,11 @@ exports.signup = async (req, res) => {
 
 };
 
-function generateAccessToken(id, name) {
+function generateAccessToken(id, isPremium) {
   const secret = process.env.JWT_SECRET || 'd6d43a64dce88b8870a88bacedb429f6';
-  // token contains only the userId (do not include sensitive info)
-  const token = jwt.sign({ userId: id }, secret, { expiresIn: '7d' });
-  console.log('✅ Token generated for userId:', id);
+  // token contains userId and isPremium
+  const token = jwt.sign({ userId: id, isPremium: isPremium }, secret, { expiresIn: '7d' });
+  console.log('✅ Token generated for userId:', id, 'isPremium:', isPremium);
   console.log('✅ Token preview:', token.substring(0, 50) + '...');
   console.log('✅ Token expiry: 7 days');
   return token;
@@ -69,7 +69,7 @@ exports.login = async (req, res) => {
     console.log('✅ Password matched for user:', email);
     
     // Return JWT token (frontend must send as `Authorization: Bearer <token>`)
-    const token = generateAccessToken(user.id, user.name);
+    const token = generateAccessToken(user.id, user.isPremium);
     console.log('✅ Login successful - token sent to client');
     res.status(200).json({ message: "Login successful", token });
     } catch(err){

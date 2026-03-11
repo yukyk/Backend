@@ -452,12 +452,14 @@
           });
         }
 
-        if (status === 'SUCCESSFUL') {
-          showAlert('Transaction Successful! Your premium membership is now active.', 'success');
-          setTimeout(() => {
-            window.location.href = '/expense';
-          }, 2000);
-        } else if (status === 'FAILED') {
+       if (status === 'SUCCESSFUL') {
+  showAlert('Transaction Successful! Your premium membership is now active.', 'success');
+  setTimeout(() => {
+    // Redirect to expense page - it will check fresh premium status
+    window.location.href = '/expense';
+  }, 2000);
+
+    } else if (status === 'FAILED') {
           showAlert('Transaction Failed. Please try again.', 'error');
           document.getElementById('loadingIndicator').style.display = 'none';
         } else if (status === 'PENDING') {

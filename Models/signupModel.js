@@ -9,17 +9,35 @@ const Signup = sequelize.define('Signup', {
     },
     name: {
         type: DataTypes.STRING,
-        allowNull: false
+        allowNull: false,
+        validate :{
+            len: [2, 100],
+            notEmpty: true
+        }
     },
     email: {
-        type: DataTypes.STRING,
-        allowNull: false,
-        unique: true
-    },
+  type: DataTypes.STRING,
+  allowNull: false,
+  unique: true,
+  validate: {
+    isEmail: true
+  },
+  set(value) {
+    this.setDataValue('email', value.toLowerCase());  // Normalize to lowercase
+  }
+},
     phone: {
-        type: DataTypes.STRING,
-        allowNull: false
-    },
+  type: DataTypes.STRING,
+  allowNull: false,
+  validate: {
+    isValidPhone(value) {
+      const digitsOnly = value.replace(/\D/g, '');
+      if (digitsOnly.length < 10 || digitsOnly.length > 15) {
+        throw new Error('Phone must be 10-15 digits');
+      }
+    }
+  }
+},
     password: {
         type: DataTypes.STRING,
         allowNull: false

@@ -14,5 +14,6 @@ router.post('/add-expense', authJwt, expenseController.addExpense);
 router.get('/get-expenses', authJwt, expenseController.getExpenses);
 router.delete('/delete-expense/:id', authJwt, expenseController.deleteExpense);
 router.put('/update-expense/:id', authJwt, expenseController.updateExpense);
+router.get('/leaderboard', authJwt, expenseController.getLeaderboard);
 
 module.exports = router;

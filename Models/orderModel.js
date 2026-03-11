@@ -25,7 +25,7 @@ const Order = sequelize.define("Order", {
         allowNull: false
     },
     status: {
-        type: DataTypes.ENUM('PENDING', 'SUCCESSFUL', 'FAILED'),
+        type: DataTypes.STRING,
         defaultValue: 'PENDING'
     },
     paymentSessionId: {

@@ -19,8 +19,8 @@ module.exports = function (req, res, next) {
   try {
     const payload = jwt.verify(token, JWT_SECRET);
     // Attach user info to req.user
-    req.user = { userId: payload.userId };
-    console.log('✅ Token verified for user:', payload.userId);
+    req.user = { userId: payload.userId, isPremium: payload.isPremium };
+    console.log('✅ Token verified for user:', payload.userId, 'isPremium:', payload.isPremium);
     return next();
   } catch (err) {
     console.log('🔴 Token verification failed:', err.message);

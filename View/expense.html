@@ -46,6 +46,35 @@
       font-weight: 700;
       margin-left: 8px;
     }
+
+    .leaderboard-btn {
+      background: linear-gradient(135deg, #ff6b6b, #ee5a52);
+      color: white;
+      border: none;
+      padding: 12px 25px;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .leaderboard-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(255, 107, 107, 0.3);
+    }
+
+    .leaderboard-btn.locked {
+      background: linear-gradient(135deg, #bdc3c7, #95a5a6);
+      cursor: not-allowed;
+    }
+
+    .leaderboard-btn.locked:hover {
+      transform: none;
+      box-shadow: none;
+    }
   </style>
 </head>
 <body>
@@ -62,6 +91,9 @@
         <button class="premium-btn" onclick="goToPremium()" id="premiumBtn">
           💎 Buy Premium
         </button>
+        <button type="button" class="leaderboard-btn" onclick="handleLeaderboard()" id="leaderboardBtn" style="pointer-events: auto;">
+  🏆 Leaderboard
+</button>
       </div>
 
       <form id="expenseForm" class="login-form">
@@ -99,29 +131,90 @@
     </div>
   </div>
 
+  <!-- Leaderboard Modal -->
+  <div id="leaderboardModal" class="modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;">
+    <div class="modal-content" style="background: white; padding: 20px; border-radius: 8px; max-width: 500px; width: 90%; max-height: 70%; overflow-y: auto;">
+      <h2>🏆 Expense Leaderboard</h2>
+      <div id="leaderboardList"></div>
+      <button onclick="closeModal()" style="margin-top: 20px; padding: 10px 20px; background: #635BFF; color: white; border: none; border-radius: 5px; cursor: pointer;">Close</button>
+    </div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
   <script src="/script.js"></script>
   <script>
     // Check and update premium status
-    async function checkPremiumStatus() {
-      const token = getToken();
-      if (!token) return;
+    // Check and update premium status
+async function checkPremiumStatus() {
+  const token = getToken();
+  if (!token) return;
 
-      try {
-        const response = await axios.get('/api/payment/premium-status');
-        const { isPremium } = response.data;
-        
-        const premiumBtn = document.getElementById('premiumBtn');
-        if (isPremium) {
-          premiumBtn.innerHTML = '✓ Premium Member <span class="premium-badge">ACTIVE</span>';
-          premiumBtn.disabled = true;
-          premiumBtn.style.cursor = 'default';
-          premiumBtn.style.opacity = '0.7';
-        }
-      } catch (error) {
-        console.error('Error checking premium status:', error);
-      }
+  try {
+    const response = await axios.get('/api/payment/premium-status');
+    const { isPremium } = response.data;
+    
+    console.log('✅ Premium status check:', isPremium);  // ADD THIS
+    
+    const premiumBtn = document.getElementById('premiumBtn');
+    const leaderboardBtn = document.getElementById('leaderboardBtn');
+    
+    if (isPremium) {
+      premiumBtn.innerHTML = '✓ Premium Member <span class="premium-badge">ACTIVE</span>';
+      premiumBtn.disabled = true;
+      premiumBtn.style.cursor = 'default';
+      premiumBtn.style.opacity = '0.7';
+      
+      leaderboardBtn.classList.remove('locked');
+      leaderboardBtn.innerHTML = '🏆 Leaderboard';
+      console.log('✅ Leaderboard unlocked');  // ADD THIS
+    } else {
+      leaderboardBtn.classList.add('locked');
+      leaderboardBtn.innerHTML = '🔒 Leaderboard';
+      console.log('❌ Leaderboard locked');  // ADD THIS
     }
+  } catch (error) {
+    console.error('Error checking premium status:', error);
+  }
+}
+
+// Show leaderboard
+async function showLeaderboard() {
+  try {
+    const res = await axios.get('/api/auth/leaderboard');
+    const leaderboard = res.data;
+    
+    const list = document.getElementById('leaderboardList');
+    list.innerHTML = '';
+    
+    if (leaderboard.length === 0) {
+      list.innerHTML = '<p>No expenses found.</p>';
+    } else {
+      const ul = document.createElement('ul');
+      ul.style.listStyle = 'none';
+      ul.style.padding = '0';
+      
+      leaderboard.forEach((user, index) => {
+        const li = document.createElement('li');
+        li.style.padding = '10px';
+        li.style.borderBottom = '1px solid #eee';
+        li.innerHTML = `<strong>${index + 1}. ${user.name}</strong> - $${parseFloat(user.totalExpense).toFixed(2)}`;
+        ul.appendChild(li);
+      });
+      
+      list.appendChild(ul);
+    }
+    
+    document.getElementById('leaderboardModal').style.display = 'flex';
+  } catch (err) {
+    console.error('Error fetching leaderboard:', err);
+    alert('Error loading leaderboard. Please try again.');
+  }
+}
+
+// Close modal
+function closeModal() {
+  document.getElementById('leaderboardModal').style.display = 'none';
+}
 
     // Navigate to payment options
     function goToPremium() {
