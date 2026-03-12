@@ -86,7 +86,11 @@ const updateExpense = async (req , res) =>{
   }
 };
 
-// Get leaderboard - FIXED FOR MYSQL
+// Get leaderboard using Sequelize ORM to avoid raw SQL injections
+// ensure models are associated in case they haven't been elsewhere
+Signup.hasMany(Expense, { foreignKey: 'userId' });
+Expense.belongsTo(Signup, { foreignKey: 'userId' });
+
 const getLeaderboard = async (req, res) => {
   try {
     const userId = req.user && req.user.userId;
@@ -96,15 +100,29 @@ const getLeaderboard = async (req, res) => {
       return res.status(403).json({ error: 'Access denied. Premium membership required.' });
     }
 
-    // Raw SQL query for better MySQL compatibility
-    const leaderboard = await sequelize.query(`
-  SELECT s.id, s.name, SUM(e.amount) as totalExpense
-  FROM signup s
-  LEFT JOIN expenses e ON s.id = e.userId
-  GROUP BY s.id, s.name
-  HAVING SUM(e.amount) > 0
-  ORDER BY totalExpense DESC
-`, { type: sequelize.QueryTypes.SELECT });
+    // optimized aggregation starting from expense table with join to user
+    const leaderboardData = await Expense.findAll({
+      attributes: [
+        'userId',
+        [sequelize.fn('SUM', sequelize.col('Expense.amount')), 'totalExpense']
+      ],
+      include: [
+        {
+          model: Signup,
+          attributes: ['id','name']
+        }
+      ],
+      group: ['Expense.userId', 'Signup.id', 'Signup.name'],
+      having: sequelize.literal('SUM(Expense.amount) > 0'),
+      order: [[sequelize.literal('totalExpense'), 'DESC']]
+    });
+
+    // map results to tidy format
+    const leaderboard = leaderboardData.map(r => ({
+      id: r.Signup.id,
+      name: r.Signup.name,
+      totalExpense: r.get('totalExpense')
+    }));
 
     res.json(leaderboard);
   } catch (err) {
