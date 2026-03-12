@@ -45,6 +45,11 @@ const Signup = sequelize.define('Signup', {
     isPremium: {
         type: DataTypes.BOOLEAN,
         defaultValue: false
+    },
+    totalExpense: {
+        type: DataTypes.FLOAT,
+        defaultValue: 0,
+        comment: 'Denormalized field: cached sum of user expenses for fast leaderboard queries'
     }
 }, {
     tableName: 'signup',

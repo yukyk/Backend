@@ -21,6 +21,12 @@ const addExpense = async (req , res) =>{
       userId: userId
     });
 
+    // Update user's cached totalExpense
+    await Signup.increment('totalExpense', {
+      by: amount,
+      where: { id: userId }
+    });
+
     res.status(201).json(expense);
   } catch (err) {
     console.error("ADD EXPENSE ERROR:", err);
@@ -55,6 +61,12 @@ const deleteExpense = async (req , res) =>{
       return res.status(403).json({ error: 'Forbidden' });
     }
 
+    // Decrement user's cached totalExpense before deletion
+    await Signup.decrement('totalExpense', {
+      by: expense.amount,
+      where: { id: userId }
+    });
+
     await Expense.destroy({ where: { id } });
     return res.status(200).json({ message: `Expense with id ${id} deleted.` });
   } catch(err){
@@ -76,6 +88,15 @@ const updateExpense = async (req , res) =>{
       return res.status(403).json({ error: 'Forbidden' });
     }
 
+    // If amount is being updated, adjust the cached totalExpense
+    if (req.body.amount && req.body.amount !== expense.amount) {
+      const amountDiff = req.body.amount - expense.amount;
+      await Signup.increment('totalExpense', {
+        by: amountDiff,
+        where: { id: userId }
+      });
+    }
+
     const result = await Expense.update(req.body, { where: { id } });
     if (result[0] === 0) {
       return res.status(400).json({ message: "No changes applied" });
@@ -86,11 +107,7 @@ const updateExpense = async (req , res) =>{
   }
 };
 
-// Get leaderboard using Sequelize ORM to avoid raw SQL injections
-// ensure models are associated in case they haven't been elsewhere
-Signup.hasMany(Expense, { foreignKey: 'userId' });
-Expense.belongsTo(Signup, { foreignKey: 'userId' });
-
+// Get leaderboard using precalculated totalExpense field (denormalization for performance)
 const getLeaderboard = async (req, res) => {
   try {
     const userId = req.user && req.user.userId;
@@ -100,29 +117,12 @@ const getLeaderboard = async (req, res) => {
       return res.status(403).json({ error: 'Access denied. Premium membership required.' });
     }
 
-    // optimized aggregation starting from expense table with join to user
-    const leaderboardData = await Expense.findAll({
-      attributes: [
-        'userId',
-        [sequelize.fn('SUM', sequelize.col('Expense.amount')), 'totalExpense']
-      ],
-      include: [
-        {
-          model: Signup,
-          attributes: ['id','name']
-        }
-      ],
-      group: ['Expense.userId', 'Signup.id', 'Signup.name'],
-      having: sequelize.literal('SUM(Expense.amount) > 0'),
-      order: [[sequelize.literal('totalExpense'), 'DESC']]
+    // O(1) database lookup using indexed totalExpense field - no joins or aggregation needed
+    const leaderboard = await Signup.findAll({
+      attributes: ['id', 'name', 'totalExpense'],
+      where: sequelize.where(sequelize.col('totalExpense'), sequelize.Op.gt, 0),
+      order: [['totalExpense', 'DESC']]
     });
-
-    // map results to tidy format
-    const leaderboard = leaderboardData.map(r => ({
-      id: r.Signup.id,
-      name: r.Signup.name,
-      totalExpense: r.get('totalExpense')
-    }));
 
     res.json(leaderboard);
   } catch (err) {
