@@ -1,35 +1,42 @@
 const User = require("../Models/signupModel");
+const sequelize = require("../Utils/util");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 
 
+
 exports.signup = async (req, res) => {
-    console.log("🔥 SIGNUP API HIT 🔥");
-  console.log("BODY:", req.body);
-  try {
-    const { name, email, phone, password } = req.body;
+    const t = await sequelize.transaction();
+    try {
+      console.log("🔥 SIGNUP API HIT 🔥");
+      console.log("BODY:", req.body);
+      
+      const { name, email, phone, password } = req.body;
 
-    if (!name || !email || !phone || !password) {
-      return res.status(400).json({ message: "All fields are required" });
+      if (!name || !email || !phone || !password) {
+        await t.rollback();
+        return res.status(400).json({ message: "All fields are required" });
+      }
+
+      const userExists = await User.findOne({ where: { email }, transaction: t });
+
+      if (userExists) {
+        await t.rollback();
+        return res.status(409).json({ message: "User already exists" });
+      }
+      
+      const saltrounds = 10;
+      const hashedPassword = await bcrypt.hash(password, saltrounds);
+
+      await User.create({ name, email, phone, password: hashedPassword }, { transaction: t });
+
+      await t.commit();
+      res.status(201).json({ message: "Signup successful" });
+    } catch (err) {
+      await t.rollback();
+      console.error(err);
+      res.status(500).json({ message: "Internal server error" });
     }
-
-    const userExists = await User.findOne({ where: { email } });
-
-    if (userExists) {
-      return res.status(409).json({ message: "User already exists" });
-    }
-    const saltrounds = 10;
-    const hashedPassword = await bcrypt.hash(password, saltrounds);
-
-    await User.create({ name, email, phone, password: hashedPassword });
-
-    res.status(201).json({ message: "Signup successful" });
-
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Internal server error" });
-  }
-
 };
 
 function generateAccessToken(id, isPremium) {

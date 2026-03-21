@@ -1,4 +1,4 @@
-console.log('App starting...');
+require("dotenv").config();
 
 const express = require("express");
 const path = require("path");
@@ -45,8 +45,9 @@ app.get("/payment-options", (req, res) => {
     res.sendFile(path.join(__dirname, "View", "payment-options.html"));
 });
 
-sequelize.sync({ alter: true }).then(() => {
+sequelize.sync({ alter: true }).then(async () => {
     console.log('Database synced successfully');
+    
     app.listen(3000, () => {
         console.log("Server running at http://localhost:3000");
     });

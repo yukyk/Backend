@@ -1,6 +1,8 @@
 const Order = require("../Models/orderModel");
 const Signup = require("../Models/signupModel");
+const sequelize = require("../Utils/util");
 const { createOrder, fetchOrderPayments, getPaymentStatus } = require("../services/cashFreeService");
+
 
 // Generate unique order ID with testing prefix
 function generateOrderId() {
@@ -9,6 +11,7 @@ function generateOrderId() {
 
 // Create payment order
 exports.createPaymentOrder = async (req, res) => {
+    const t = await sequelize.transaction();
     try {
         const { amount } = req.body;
         const userId = req.user && req.user.userId;
@@ -16,18 +19,21 @@ exports.createPaymentOrder = async (req, res) => {
         console.log('💳 Create Payment Order Request - Amount:', amount, 'UserId:', userId);
 
         if (!userId) {
+            await t.rollback();
             console.log('🔴 No userId found in request');
             return res.status(401).json({ error: 'Unauthorized' });
         }
 
         if (!amount) {
+            await t.rollback();
             console.log('🔴 No amount provided');
             return res.status(400).json({ error: 'Amount is required' });
         }
 
-        // Get user details
+        // Get user details (read-only, outside tx)
         const user = await Signup.findOne({ where: { id: userId } });
         if (!user) {
+            await t.rollback();
             console.log('🔴 User not found:', userId);
             return res.status(404).json({ error: 'User not found' });
         }
@@ -37,17 +43,19 @@ exports.createPaymentOrder = async (req, res) => {
         // Generate order ID with testing prefix
         const orderId = generateOrderId();
 
-        // Create order in database with PENDING status
+        // Create order in database with PENDING status within transaction
         const order = await Order.create({
             orderId: orderId,
             userId: userId,
-            amount: amount,
+            amount: parseFloat(amount),
             status: 'PENDING'
-        });
+        }, { transaction: t });
 
         console.log('✅ Order created in database:', orderId);
 
-        // Create order with CashFree
+        await t.commit(); // Commit before external API call
+
+        // Create order with CashFree (external API)
         try {
             const paymentSessionId = await createOrder(
                 orderId,
@@ -59,8 +67,8 @@ exports.createPaymentOrder = async (req, res) => {
 
             console.log('✅ CashFree: Order created:', paymentSessionId);
 
-            // Update order with payment session ID
-            await order.update({ paymentSessionId: paymentSessionId });
+            // Update order with payment session ID (new tx)
+            await Order.update({ paymentSessionId: paymentSessionId }, { where: { orderId }, transaction: await sequelize.transaction() });
 
             console.log('✅ Payment order response sent');
 
@@ -70,13 +78,11 @@ exports.createPaymentOrder = async (req, res) => {
                 amount: amount
             });
         } catch (cashfreeError) {
-            console.error("🔴 CashFree Error Details:");
-            console.error("  Error Message:", cashfreeError.message);
-            console.error("  Error Status Code:", cashfreeError.statusCode);
+            console.error("🔴 CashFree Error Details:", cashfreeError.message);
             
-            await order.update({ status: 'FAILED' });
+            // Update order status to FAILED (new tx)
+            await Order.update({ status: 'FAILED' }, { where: { orderId }, transaction: await sequelize.transaction() });
             
-            // Return a clean error message - only primitive types for JSON serialization
             const errorMessage = String(cashfreeError.message) || 'Failed to create payment session';
             return res.status(500).json({ 
                 error: 'Failed to create payment session',
@@ -85,6 +91,7 @@ exports.createPaymentOrder = async (req, res) => {
         }
 
     } catch (error) {
+        await t.rollback();
         console.error("🔴 Create Order Error:", error.message);
         const errorMessage = String(error.message) || 'Failed to create order';
         return res.status(500).json({ error: errorMessage });
@@ -124,18 +131,25 @@ exports.verifyPayment = async (req, res) => {
             
             console.log('✅ Cashfree Status:', actualStatus, 'DB Status:', order.status);
             
-            // Update database with actual payment status from Cashfree
-            if (actualStatus === 'SUCCESS' && order.status !== 'SUCCESSFUL') {
-                await order.update({ status: 'SUCCESSFUL' });
+            const t = await sequelize.transaction();
+            try {
+              // Update database with actual payment status from Cashfree within transaction
+              if (actualStatus === 'SUCCESS' && order.status !== 'SUCCESSFUL') {
+                await order.update({ status: 'SUCCESSFUL' }, { transaction: t });
                 
                 // Update user to premium
-                const user = await Signup.findOne({ where: { id: userId } });
+                const user = await Signup.findOne({ where: { id: userId }, transaction: t });
                 if (user) {
-                    await user.update({ isPremium: true });
+                    await user.update({ isPremium: true }, { transaction: t });
                     console.log('✅ User upgraded to premium');
                 }
-            } else if (actualStatus === 'FAILED' && order.status !== 'FAILED') {
-                await order.update({ status: 'FAILED' });
+              } else if (actualStatus === 'FAILED' && order.status !== 'FAILED') {
+                await order.update({ status: 'FAILED' }, { transaction: t });
+              }
+              await t.commit();
+            } catch (dbError) {
+              await t.rollback();
+              console.error('Database update failed:', dbError);
             }
             
             return res.status(200).json({
@@ -191,16 +205,23 @@ exports.updatePaymentStatus = async (req, res) => {
             return res.status(403).json({ error: 'Forbidden' });
         }
 
-        // Update order status
-        await order.update({ status: status });
+            const t = await sequelize.transaction();
+            try {
+              // Update order status within transaction
+              await order.update({ status: status }, { transaction: t });
 
-        // If successful, update user to premium
-        if (status === 'SUCCESSFUL') {
-            const user = await Signup.findOne({ where: { id: userId } });
-            if (user) {
-                await user.update({ isPremium: true });
+              // If successful, update user to premium
+              if (status === 'SUCCESSFUL') {
+                  const user = await Signup.findOne({ where: { id: userId }, transaction: t });
+                  if (user) {
+                      await user.update({ isPremium: true }, { transaction: t });
+                  }
+              }
+              await t.commit();
+            } catch (dbError) {
+              await t.rollback();
+              console.error('Database update failed:', dbError);
             }
-        }
 
         return res.status(200).json({
             message: 'Payment status updated',

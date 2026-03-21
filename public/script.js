@@ -1,8 +1,5 @@
 console.log('expense script loaded');
 
-const form = document.getElementById('expenseForm');
-const list = document.getElementById('expenseList');
-
 // Get JWT token from localStorage
 function getToken() {
   const token = localStorage.getItem('token');
@@ -33,30 +30,70 @@ axios.interceptors.request.use((config) => {
   return config;
 });
 
-async function fetchExpenses(){
-  if (!checkAuth()) return;
+document.addEventListener('DOMContentLoaded', function initializeExpenseApp() {
+  console.log('🚀 Expense app initializing...');
   
-  try{
+  // Global elements
+  window.expenseForm = document.getElementById('expenseForm');
+  window.expenseList = document.getElementById('expenseList');
+  
+  console.log('Form:', window.expenseForm ? '✅ Found' : '❌ Missing');
+  console.log('List:', window.expenseList ? '✅ Found' : '❌ Missing');
+  
+  // Force auth check & load
+  setTimeout(() => {
+    if (checkAuth()) {
+      fetchExpenses();
+    }
+  }, 100);
+  
+  console.log('✅ Initialization complete');
+});
+
+// Fetch and display expenses
+async function fetchExpenses() {
+  if (!window.expenseList) {
+    console.error('❌ expenseList element not found');
+    return;
+  }
+  
+  console.log('🔄 fetchExpenses() CALLED');
+  const token = getToken();
+  console.log('🔑 TOKEN BEFORE FETCH:', token ? `EXISTS (${token.length} chars)` : 'MISSING');
+  
+  try {
     const res = await axios.get('/api/auth/get-expenses');
     const expenses = res.data || [];
+    console.log('✅ FETCH SUCCESS:', expenses.length, 'expenses');
+    console.log('📋 RAW DATA:', expenses.slice(0,2));
     renderExpenses(expenses);
-  }catch(err){
-    console.error('Fetch expenses error', err);
-    list.innerHTML = '';
+  } catch(err) {
+    console.error('❌ Fetch expenses FULL ERROR:', {
+      status: err.response?.status,
+      statusText: err.response?.statusText,
+      data: err.response?.data,
+      message: err.message
+    });
+    window.expenseList.innerHTML = '';
     const li = document.createElement('li');
     li.textContent = 'Could not load expenses';
     li.style.color = '#f56565';
-    list.appendChild(li);
+    window.expenseList.appendChild(li);
   }
 }
 
 function renderExpenses(items){
-  list.innerHTML = '';
+  if (!window.expenseList) {
+    console.error('❌ expenseList element not found in renderExpenses');
+    return;
+  }
+  
+  window.expenseList.innerHTML = '';
   if(!items || items.length === 0){
     const empty = document.createElement('li');
     empty.textContent = 'No expenses yet';
     empty.style.color = '#8792a2';
-    list.appendChild(empty);
+    window.expenseList.appendChild(empty);
     return;
   }
 
@@ -82,7 +119,8 @@ function renderExpenses(items){
     meta.style.color = '#6b7385';
     meta.style.fontSize = '13px';
     const dateStr = item.createdAt ? new Date(item.createdAt).toLocaleString() : '';
-    meta.textContent = `${item.category || ''} • ${dateStr}`;
+    const statusBadge = item.status === 'pending' ? ' <span style="background:#fbbf24;color:white;padding:2px 6px;border-radius:3px;font-size:11px;">⏳ Pending</span>' : '';
+    meta.textContent = `${item.category || ''}${statusBadge} • ${dateStr}`;
 
     left.appendChild(desc);
     left.appendChild(meta);
@@ -108,17 +146,36 @@ function renderExpenses(items){
     delBtn.style.borderRadius = '6px';
     delBtn.style.cursor = 'pointer';
 
-    delBtn.addEventListener('click', async () => {
-      const id = delBtn.dataset.id;
-      if(!id) return;
-      if (!checkAuth()) return;
+    delBtn.addEventListener('click', async function() {
+      console.log('🗑️ DELETE BUTTON CLICKED for ID:', delBtn.dataset.id);
       
-      try{
-        await axios.delete(`/api/auth/delete-expense/${id}`);
+      const id = delBtn.dataset.id;
+      if(!id) {
+        alert('❌ Invalid expense ID');
+        return;
+      }
+      
+      if (!checkAuth()) {
+        console.error('❌ Auth check failed for delete');
+        return;
+      }
+      
+      if (!confirm(`Delete expense $${Number(item.amount || 0).toFixed(2)}?`)) {
+        return;
+      }
+      
+      try {
+        console.log('🌐 Calling DELETE /api/auth/delete-expense/' + id);
+        const response = await axios.delete(`/api/auth/delete-expense/${id}`);
+        console.log('✅ Delete success:', response.data);
         fetchExpenses();
-      }catch(err){
-        console.error('Delete error', err);
-        alert('Could not delete');
+      } catch(err) {
+        console.error('❌ DELETE ERROR:', {
+          id,
+          status: err.response?.status,
+          data: err.response?.data
+        });
+        alert('❌ Delete failed: ' + (err.response?.data?.error || 'Unknown error'));
       }
     });
 
@@ -129,7 +186,7 @@ function renderExpenses(items){
     row.appendChild(left);
     row.appendChild(right);
     li.appendChild(row);
-    list.appendChild(li);
+    window.expenseList.appendChild(li);
   });
 }
 // Handle leaderboard button click
@@ -181,39 +238,134 @@ function closeModal() {
   document.getElementById('leaderboardModal').style.display = 'none';
 }
 
-if(form){
-  form.addEventListener('submit', async (e)=>{
-    e.preventDefault();
+// Form submission handler - attach inside DOMContentLoaded
+document.addEventListener('DOMContentLoaded', function() {
+  const expenseForm = document.getElementById('expenseForm');
+  if(expenseForm){
+    expenseForm.addEventListener('submit', async function(e) {
+      e.preventDefault();
+      console.log('🎯 ADD BUTTON CLICKED - Form submit handler fired!');
+      
+      if (!checkAuth()) {
+        console.error('❌ Auth failed');
+        return;
+      }
+      
+      const amountEl = document.getElementById('amount');
+      const descriptionEl = document.getElementById('description');
+      const categoryEl = document.getElementById('category');
+
+      if (!amountEl || !descriptionEl) {
+        alert('❌ Form inputs missing!');
+        return;
+      }
+
+      const amount = parseFloat(amountEl.value.trim());
+      const description = descriptionEl.value.trim();
+      const category = categoryEl.value.trim() || 'Uncategorized';
+      
+      console.log('📤 Submitting:', { amount, description, category });
+      
+      if (!amount || !description || amount <= 0) {
+        alert('❌ Please enter valid amount (>0) and description');
+        return;
+      }
+
+      try {
+        console.log('🌐 Calling POST /api/auth/add-expense...');
+        const response = await axios.post('/api/auth/add-expense', { 
+          amount, 
+          description, 
+          category, 
+          status: 'pending' 
+        });
+        console.log('✅ SUCCESS:', response.data);
+        expenseForm.reset();
+        fetchExpenses();
+        alert('✅ Expense added successfully!');
+      } catch (err) {
+        console.error('❌ ADD ERROR:', {
+          status: err.response?.status,
+          data: err.response?.data,
+          message: err.message
+        });
+        const errorMsg = err.response?.data?.error || 
+                        (err.response?.status === 401 ? 'Session expired - please login again' : 
+                        'Failed to add expense');
+        alert(`❌ ${errorMsg}`);
+      }
+    });
     
-    if (!checkAuth()) return;
-    
-    const amountEl = document.getElementById('amount');
-    const descriptionEl = document.getElementById('description');
-    const categoryEl = document.getElementById('category');
+    console.log('✅ Add form handler attached');
+  } else {
+    console.error('❌ Cannot attach handler - form missing');
+  }
 
-    const amount = amountEl ? amountEl.value.trim() : '';
-    const description = descriptionEl ? descriptionEl.value.trim() : '';
-    const category = categoryEl ? categoryEl.value.trim() : '';
+  // AI Category Suggestion
+  let aiSuggestionTimeout;
+  const descriptionEl = document.getElementById('description');
+  const categoryEl = document.getElementById('category');
+  if (descriptionEl && categoryEl) {
+    descriptionEl.addEventListener('input', async () => {
+      const desc = descriptionEl.value.trim();
+      if (desc.length < 3) return;
 
-    if(!amount || !description || !category){
-      alert('All fields are required');
-      return;
-    }
+      // Debounce
+      clearTimeout(aiSuggestionTimeout);
+      aiSuggestionTimeout = setTimeout(async () => {
+        try {
+          const res = await axios.get(`/api/auth/suggest-category?description=${encodeURIComponent(desc)}`);
+          const { suggestedCategory } = res.data;
+          if (suggestedCategory) {
+            categoryEl.value = suggestedCategory;
+            showAISuggestion(suggestedCategory);
+          }
+        } catch (err) {
+          console.error('AI suggestion failed:', err);
+        }
+      }, 500);
+    });
+  }
+});
 
-    try{
-      const response = await axios.post('/api/auth/add-expense', { amount, description, category });
-      console.log('Expense added successfully:', response.data);
-      if(form.reset) form.reset();
-      fetchExpenses();
-    }catch(err){
-      console.error('Add expense error', err);
-      console.error('Error details:', err.response?.status, err.response?.data);
-      alert('Could not add expense: ' + (err.response?.data?.error || err.message));
-    }
-  });
+// Show AI suggestion UI
+function showAISuggestion(category) {
+  const categoryEl = document.getElementById('category');
+  let suggEl = document.getElementById('aiSuggestion');
+  if (!suggEl && categoryEl) {
+    suggEl = document.createElement('div');
+    suggEl.id = 'aiSuggestion';
+    suggEl.style.cssText = 'color: #10b981; font-size: 14px; margin-top: 4px; font-style: italic;';
+    categoryEl.parentNode.appendChild(suggEl);
+  }
+  if (suggEl) {
+    suggEl.textContent = `🤖 AI suggests: ${category}`;
+  }
 }
 
-// initial load (check auth first)
-if (checkAuth()) {
-  fetchExpenses();
+async function handleInsights() {
+  if (!checkAuth()) return;
+  try {
+    const res = await axios.get('/api/auth/insights');
+    showInsightsModal(res.data.insights);
+  } catch (err) {
+    alert(err.response?.data?.error || 'Insights failed');
+  }
 }
+
+function showInsightsModal(insights) {
+  const modal = document.createElement('div');
+  modal.innerHTML = `
+    <div class="modal" style="display:flex;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:1000;justify-content:center;align-items:center;">
+      <div style="background:white;padding:20px;border-radius:8px;max-width:90%;max-height:70%;overflow:auto;">
+        <h3>🧠 AI Spending Insights</h3>
+        <pre style="white-space:pre-wrap;font-family:inherit;">${insights}</pre>
+        <button onclick="this.closest('.modal').remove()" style="margin-top:20px;padding:10px;background:#635BFF;color:white;border:none;border-radius:5px;cursor:pointer;">Close</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal.firstElementChild);
+}
+
+// Initial load now handled in DOMContentLoaded
+console.log('📝 script.js fully loaded');

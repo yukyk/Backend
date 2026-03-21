@@ -11,10 +11,10 @@ const Expense = sequelize.define("Expense", {
         type: DataTypes.FLOAT,
         allowNull: false,
         validate:{
-            min:1,
-            max:1000
+            min:1
         }
     },
+
     description:{
         type: DataTypes.STRING,
         allowNull: false
@@ -22,6 +22,11 @@ const Expense = sequelize.define("Expense", {
     category:{
         type: DataTypes.STRING,
         allowNull: false
+    },
+    status:{
+        type: DataTypes.STRING,
+        allowNull: false,
+        defaultValue: 'pending'
     },
     userId:{
         type: DataTypes.INTEGER,
