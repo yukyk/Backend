@@ -1,34 +1,13 @@
-# Fix Expenses Not Showing in App
+# Forgot Password with Brevo Email Integration - TODO
 
-## Status: 🔄 In Progress
+## Steps (Approved Plan):
+- [x] 1. Create services/emailService.js ✓
+- [x] 2. Update .env with provided API key (manual)
+- [x] 3. Create Controller/forgotPasswordController.js ✓
+- [x] 4. Create Routes/passwordRoutes.js ✓
+- [x] 5. Update app.js (mount /api/password) ✓
+- [x] 6. Update View/login.html (forgot pw UI) ✓
+- [x] 7. Update public/login.js (logic/axios) ✓
+- [ ] 8. Test end-to-end
 
-### Step 1: [✅ COMPLETE] Add comprehensive logging
-- [✅] Edit `Controller/expenseController.js`: Log userId, query results, expense count before res.json
-- [✅] Edit `public/script.js`: Log token before fetchExpenses(), full error.response in catch
-- [✅] Edit `Middleware/authJwt.js`: Log req.user after verification
-
-### Step 2: [PENDING] Restart server & test
-```
-node app.js  # or npm start
-```
-- Login → Add expense → Check server console for logs
-- Browser console → Check fetchExpenses() logs/response
-
-### Step 3: [PENDING] Manual DB verification
-```
-mysql -u root -p expense_tracker
-SELECT COUNT(*) FROM signup;
-SELECT COUNT(*) FROM expenses;
-SELECT e.*, s.name FROM expenses e JOIN signup s ON e.userId = s.id ORDER BY e.createdAt DESC;
-```
-
-### Step 4: [PENDING] Fix based on logs
-- If no inserts: Fix addExpense userId/transaction
-- If mismatch userId: Fix JWT payload/login
-- If empty query: Fix DB connection/models
-- Test delete/refresh list
-
-### Step 5: [PENDING] Clean up extra logs & attempt_completion
-
-**Current Progress: 0/5 steps complete**
-
+Progress tracked here. Next: Step 1.

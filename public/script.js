@@ -321,7 +321,7 @@ document.addEventListener('DOMContentLoaded', function() {
             showAISuggestion(suggestedCategory);
           }
         } catch (err) {
-          console.error('AI suggestion failed:', err);
+          console.error("AI Suggestion Error", err);
         }
       }, 500);
     });

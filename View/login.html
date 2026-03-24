@@ -35,8 +35,30 @@
 
         </form>
 
+        <!-- Forgot Password Section -->
+        <div class="forgot-pw-section" id="forgotPwSection" style="display: none;">
+            <h3>Forgot Password?</h3>
+            <form id="forgotPwForm" class="login-form">
+                <div class="input-group">
+                    <input type="email" id="forgotEmail" required placeholder=" ">
+                    <label>Enter your email</label>
+                    <div class="input-border"></div>
+                </div>
+                <button type="submit" class="submit-btn">Send Reset Link</button>
+                <button type="button" id="resendBtn" class="submit-btn secondary" style="display: none;">
+                    Resend Reset Link
+                </button>
+                <div id="resendTimer" class="resend-timer" style="display: none;"></div>
+                <button type="button" id="backToLogin" class="submit-btn secondary">Back to Login</button>
+            </form>
+        </div>
+
+        <div class="forgot-pw-link">
+            <button id="showForgotPw" class="forgot-link">Forgot Password?</button>
+        </div>
+
         <div class="signup-link">
-            Don’t have an account? <a href="/signup">Sign up</a>
+            Don't have an account? <a href="/signup">Sign up</a>
         </div>
 
     </div>

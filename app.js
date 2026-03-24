@@ -6,10 +6,12 @@ const cors = require("cors");
 
 const authRoutes = require("./Routes/signupRoutes");
 const paymentRoutes = require("./Routes/paymentRoutes");
+const passwordRoutes = require("./Routes/passwordRoutes");
 const sequelize = require("./Utils/util");
 const Signup = require("./Models/signupModel");
 const Expense = require("./Models/expenseModel");
 const Order = require("./Models/orderModel");
+const ForgotPassword = require("./Models/forgotpassword");
 
 const app = express();
 
@@ -24,8 +26,12 @@ Expense.belongsTo(Signup, { foreignKey: 'userId' });
 Signup.hasMany(Order, { foreignKey: 'userId' });
 Order.belongsTo(Signup, { foreignKey: 'userId' });
 
+Signup.hasMany(ForgotPassword, { foreignKey: 'userId' });
+ForgotPassword.belongsTo(Signup, { foreignKey: 'userId' });
+
 app.use("/api/auth", authRoutes);
 app.use("/api/payment", paymentRoutes);
+app.use("/api/password", passwordRoutes);
 
 app.use(express.static(path.join(__dirname, "public")));
 app.use(express.static(path.join(__dirname, "View")));
@@ -43,6 +49,14 @@ app.get("/expense", (req, res) => {
 
 app.get("/payment-options", (req, res) => {
     res.sendFile(path.join(__dirname, "View", "payment-options.html"));
+});
+
+app.get("/reset-password", (req, res) => {
+    res.sendFile(path.join(__dirname, "View", "reset-password.html"));
+});
+
+app.get("/login", (req, res) => {
+    res.sendFile(path.join(__dirname, "View", "login.html"));
 });
 
 sequelize.sync({ alter: true }).then(async () => {
