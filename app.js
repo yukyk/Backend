@@ -11,7 +11,7 @@ const sequelize = require("./Utils/util");
 const Signup = require("./Models/signupModel");
 const Expense = require("./Models/expenseModel");
 const Order = require("./Models/orderModel");
-const ForgotPassword = require("./Models/forgotpassword");
+const ForgotPasswordRequests = require("./Models/forgotPasswordRequests");
 
 const app = express();
 
@@ -26,8 +26,8 @@ Expense.belongsTo(Signup, { foreignKey: 'userId' });
 Signup.hasMany(Order, { foreignKey: 'userId' });
 Order.belongsTo(Signup, { foreignKey: 'userId' });
 
-Signup.hasMany(ForgotPassword, { foreignKey: 'userId' });
-ForgotPassword.belongsTo(Signup, { foreignKey: 'userId' });
+Signup.hasMany(ForgotPasswordRequests, { foreignKey: 'userId' });
+ForgotPasswordRequests.belongsTo(Signup, { foreignKey: 'userId' });
 
 app.use("/api/auth", authRoutes);
 app.use("/api/payment", paymentRoutes);
@@ -57,6 +57,11 @@ app.get("/reset-password", (req, res) => {
 
 app.get("/login", (req, res) => {
     res.sendFile(path.join(__dirname, "View", "login.html"));
+});
+
+// Password reset page with UUID in path
+app.get("/password/resetpassword/:id", (req, res) => {
+    res.sendFile(path.join(__dirname, "View", "reset-password.html"));
 });
 
 sequelize.sync({ alter: true }).then(async () => {

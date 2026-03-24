@@ -8,16 +8,20 @@ apiKey.apiKey = process.env.API_KEY;
 
 var apiInstance = new SibApiV3Sdk.TransactionalEmailsApi();
 
-async function sendResetEmail(toEmail, resetToken) {
+async function sendResetEmail(toEmail, requestId) {
   const sender = {
     name: 'Advance Expense Tracker',
-    // ✅ FIXED: Use Brevo-verified sender — NOT a Gmail address
-    // Option A: use your Brevo subdomain email (see step below)
-    // Option B: use your own domain email like noreply@yourdomain.com
-    email: 'yusufkhambaty1@gmail.com' // 👈 CHANGE THIS
+    email: 'yusufkhambaty1@gmail.com'
   };
 
-  const receivers = [{ email: toEmail }];
+  const receivers = [
+    {
+      email: toEmail
+    }
+  ];
+
+  // Use UUID-based reset URL
+  const resetUrl = `http://localhost:3000/password/resetpassword/${requestId}`;
 
   const sendSmtpEmail = {
     sender,
@@ -25,34 +29,32 @@ async function sendResetEmail(toEmail, resetToken) {
     subject: 'Password Reset - Advance Expense Tracker',
     htmlContent: `
       <html>
-        <body style="font-family: Arial, sans-serif; padding: 20px;">
-          <h2 style="color: #007bff;">Reset Your Password</h2>
-          <p>Hello,</p>
-          <p>We received a request to reset your password for your Advance Expense Tracker account.</p>
-          <p>
-            <a href="http://localhost:3000/reset-password?token=${resetToken}"
-               style="background:#007bff; color:white; padding:12px 24px;
-                      text-decoration:none; border-radius:5px; display:inline-block;">
-              Reset Password
-            </a>
-          </p>
-          <p>This link expires in <strong>1 hour</strong>.</p>
-          <p>If you didn't request this, ignore this email.</p>
-        </body>
+      <body>
+        <h1>Reset Your Password</h1>
+        <p>Hello,</p>
+        <p>You requested a password reset for your Advance Expense Tracker account.</p>
+        <p>Click the button below to reset your password:</p>
+        <p style="margin: 30px 0;">
+          <a href="${resetUrl}" style="background: #635BFF; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; font-weight: 600;">Reset Password</a>
+        </p>
+        <p>Or copy and paste this link into your browser:</p>
+        <p style="word-break: break-all; color: #666;">${resetUrl}</p>
+        <p style="color: #888; font-size: 12px; margin-top: 30px;">This link will expire in 1 hour. If you didn't request this password reset, please ignore this email.</p>
+      </body>
       </html>
     `,
-    textContent: `Reset your password here: http://localhost:3000/reset-password?token=${resetToken}`
+    textContent: `Reset Password: ${resetUrl}\n\nThis link will expire in 1 hour.`
   };
 
   try {
     const response = await apiInstance.sendTransacEmail(sendSmtpEmail);
-    console.log('✅ Reset email sent to:', toEmail);
+    console.log('✅ Email sent to ' + toEmail);
     return response;
   } catch (error) {
-  console.error('❌ Full Brevo error:', JSON.stringify(error.response?.body, null, 2));
-  console.error('❌ Status code:', error.status || error.response?.status);
-  console.error('❌ Message:', error.message);
-  throw error;
+    console.error('❌ Email error for ' + toEmail + ':', error.response ? error.response.body : error.message);
+    // Don't throw - we still created the request even if email fails
+    console.log('📧 Reset URL (in case email fails):', resetUrl);
+    return null;
   }
 }
 

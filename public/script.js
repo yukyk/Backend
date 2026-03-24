@@ -119,8 +119,8 @@ function renderExpenses(items){
     meta.style.color = '#6b7385';
     meta.style.fontSize = '13px';
     const dateStr = item.createdAt ? new Date(item.createdAt).toLocaleString() : '';
-    const statusBadge = item.status === 'pending' ? ' <span style="background:#fbbf24;color:white;padding:2px 6px;border-radius:3px;font-size:11px;">⏳ Pending</span>' : '';
-    meta.textContent = `${item.category || ''}${statusBadge} • ${dateStr}`;
+    const statusBadge = item.status === 'pending' ? '<span style="background:#fbbf24;color:white;padding:2px 6px;border-radius:3px;font-size:11px;">⏳ Pending</span>' : '';
+    meta.innerHTML = `${item.category || ''} ${statusBadge} • ${dateStr}`;
 
     left.appendChild(desc);
     left.appendChild(meta);
