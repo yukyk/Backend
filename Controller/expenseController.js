@@ -1,4 +1,5 @@
 const Expense = require('../Models/expenseModel');
+const Income = require('../Models/incomeModel');
 const Signup = require('../Models/signupModel');
 const sequelize = require('../Utils/util');
 const { Op } = require('sequelize');
@@ -76,6 +77,7 @@ const addExpense = async (req, res) => {
 // Get expenses belonging to authenticated user
 const getExpenses = async (req, res) => {
   console.log('🌐 GET /get-expenses - req.user:', req.user);
+  console.log('📅 Query params:', req.query);
   
   try {
     const userId = req.user && req.user.userId;
@@ -86,16 +88,37 @@ const getExpenses = async (req, res) => {
       return res.status(401).json({ error: 'Unauthorized - no userId' });
     }
 
+    const { startDate, endDate } = req.query;
+    let whereClause = { userId };
+
+    // Add date filtering if provided
+    if (startDate && endDate) {
+      whereClause.createdAt = {
+        [Op.between]: [new Date(startDate), new Date(endDate + 'T23:59:59.999Z')]
+      };
+    } else if (startDate) {
+      whereClause.createdAt = {
+        [Op.gte]: new Date(startDate)
+      };
+    } else if (endDate) {
+      whereClause.createdAt = {
+        [Op.lte]: new Date(endDate + 'T23:59:59.999Z')
+      };
+    }
+
     const expenses = await Expense.findAll({ 
-      where: { userId: userId },
+      where: whereClause,
       order: [['createdAt', 'DESC']]
     });
     
-    // 👇 NEW DIAGNOSTIC LOGS
-    console.log(`✅ QUERY SUCCESS - Found ${expenses.length} expenses for user ${userId}`);
-    console.log('📋 RAW EXPENSES:', JSON.stringify(expenses.map(e => ({id: e.id, amount: e.amount, userId: e.userId, createdAt: e.createdAt})), null, 2));
+    // Add entryType field to each expense
+    const expensesWithType = expenses.map(e => ({
+      ...e.toJSON(),
+      entryType: 'expense'
+    }));
     
-    res.json(expenses);
+    console.log(`✅ QUERY SUCCESS - Found ${expensesWithType.length} expenses for user ${userId}`);
+    res.json(expensesWithType);
   } catch(err) {
     console.error('GET EXPENSES ERROR:', err);
     res.status(500).json({error: "Error fetching expenses"});
@@ -282,4 +305,188 @@ const recalculateTotals = async () => {
   }
 };
 
-module.exports = {addExpense, getExpenses, deleteExpense, updateExpense, getLeaderboard, suggestCategory, getInsights, recalculateTotals};
+// ==================== INCOME FUNCTIONS ====================
+
+// Add income
+const addIncome = async (req, res) => {
+  console.log('🌐 POST /add-income - Body:', req.body);
+  console.log('👤 req.user:', req.user);
+  
+  const t = await sequelize.transaction();
+
+  try {
+    let { amount, description, category } = req.body;
+
+    if (!amount || !description) {
+      await t.rollback();
+      return res.status(400).json({ error: "Amount and description are required" });
+    }
+
+    amount = parseFloat(amount);
+    if (isNaN(amount) || amount <= 0) {
+      await t.rollback();
+      return res.status(400).json({ error: "Amount must be a valid positive number" });
+    }
+
+    const userId = req.user && req.user.userId;
+    if (!userId) {
+      await t.rollback();
+      return res.status(401).json({ error: 'Unauthorized - no userId' });
+    }
+
+    const income = await Income.create({
+      amount,
+      description,
+      category: category || 'Uncategorized',
+      status: req.body.status || 'completed',
+      userId: userId
+    }, { transaction: t });
+    
+    console.log(`✅ Income created - User ${userId}: $${amount} (${income.id})`);
+
+    await t.commit();
+    res.status(201).json({...income.toJSON(), entryType: 'income'});
+  } catch (err) {
+    await t.rollback();
+    console.error("ADD INCOME ERROR:", err);
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// Get incomes
+const getIncomes = async (req, res) => {
+  console.log('🌐 GET /get-incomes - req.user:', req.user);
+  console.log('📅 Query params:', req.query);
+  
+  try {
+    const userId = req.user && req.user.userId;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized - no userId' });
+    }
+
+    const { startDate, endDate } = req.query;
+    let whereClause = { userId };
+
+    if (startDate && endDate) {
+      whereClause.createdAt = {
+        [Op.between]: [new Date(startDate), new Date(endDate + 'T23:59:59.999Z')]
+      };
+    } else if (startDate) {
+      whereClause.createdAt = {
+        [Op.gte]: new Date(startDate)
+      };
+    } else if (endDate) {
+      whereClause.createdAt = {
+        [Op.lte]: new Date(endDate + 'T23:59:59.999Z')
+      };
+    }
+
+    const incomes = await Income.findAll({ 
+      where: whereClause,
+      order: [['createdAt', 'DESC']]
+    });
+    
+    const incomesWithType = incomes.map(i => ({
+      ...i.toJSON(),
+      entryType: 'income'
+    }));
+    
+    console.log(`✅ QUERY SUCCESS - Found ${incomesWithType.length} incomes for user ${userId}`);
+    res.json(incomesWithType);
+  } catch(err) {
+    console.error('GET INCOMES ERROR:', err);
+    res.status(500).json({error: "Error fetching incomes"});
+  }
+};
+
+// Delete income
+const deleteIncome = async (req, res) => {
+  console.log('🗑️ DELETE /delete-income/' + req.params.id);
+  
+  const t = await sequelize.transaction();
+
+  try {
+    const {id} = req.params;
+    const userId = req.user && req.user.userId;
+    
+    if (!userId) {
+      await t.rollback();
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const income = await Income.findOne({ where: { id }, transaction: t });
+    if (!income) {
+      await t.rollback();
+      return res.status(404).json({ message: `Income with id ${id} not found.` });
+    }
+
+    if (income.userId !== userId) {
+      await t.rollback();
+      return res.status(403).json({ error: 'Forbidden - not your income' });
+    }
+
+    await Income.destroy({ where: { id } }, { transaction: t });
+    
+    await t.commit();
+    console.log(`✅ Deleted income ${id} for user ${userId}`);
+    
+    return res.status(200).json({ message: `Income with id ${id} deleted.` });
+  } catch(err) {
+    await t.rollback();
+    console.error("DELETE INCOME ERROR:", err);
+    res.status(500).json({error: "Error deleting income"});
+  }
+};
+
+// Update income
+const updateIncome = async (req, res) => {
+  const t = await sequelize.transaction();
+
+  try {
+    const {id} = req.params;
+    const userId = req.user && req.user.userId;
+    if (!userId) {
+      await t.rollback();
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const income = await Income.findOne({ where: { id }, transaction: t });
+    if (!income) {
+      await t.rollback();
+      return res.status(404).json({ message: "Income not found" });
+    }
+
+    if (income.userId !== userId) {
+      await t.rollback();
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+
+    const result = await Income.update(req.body, { where: { id } }, { transaction: t });
+    if (result[0] === 0) {
+      await t.rollback();
+      return res.status(400).json({ message: "No changes applied" });
+    }
+    
+    await t.commit();
+    res.json({message: `Income with id ${id} successfully updated.`});
+  } catch(err) {
+    await t.rollback();
+    console.error("UPDATE INCOME ERROR:", err);
+    res.status(500).json({error: "Error updating income"});
+  }
+};
+
+module.exports = {
+  addExpense, 
+  getExpenses, 
+  deleteExpense, 
+  updateExpense, 
+  getLeaderboard, 
+  suggestCategory, 
+  getInsights, 
+  recalculateTotals,
+  addIncome,
+  getIncomes,
+  deleteIncome,
+  updateIncome
+};

@@ -1,3 +1,57 @@
+// Toast notification system
+function showToast(message, type = 'success') {
+  const existingToast = document.querySelector('.toast-notification');
+  if (existingToast) existingToast.remove();
+  
+  const toast = document.createElement('div');
+  toast.className = 'toast-notification';
+  toast.style.cssText = `
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 15px 25px;
+    border-radius: 8px;
+    color: white;
+    font-weight: 500;
+    z-index: 10000;
+    animation: slideIn 0.3s ease;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    max-width: 350px;
+  `;
+  
+  if (type === 'success') {
+    toast.style.background = 'linear-gradient(135deg, #27ae60, #219a52)';
+  } else if (type === 'error') {
+    toast.style.background = 'linear-gradient(135deg, #e74c3c, #c0392b)';
+  } else if (type === 'info') {
+    toast.style.background = 'linear-gradient(135deg, #635BFF, #5245d8)';
+  } else if (type === 'warning') {
+    toast.style.background = 'linear-gradient(135deg, #f39c12, #e67e22)';
+  }
+  
+  toast.textContent = message;
+  document.body.appendChild(toast);
+  
+  setTimeout(() => {
+    toast.style.animation = 'slideOut 0.3s ease';
+    setTimeout(() => toast.remove(), 300);
+  }, 3000);
+}
+
+// Add animation styles
+const style = document.createElement('style');
+style.textContent = `
+  @keyframes slideIn {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+  @keyframes slideOut {
+    from { transform: translateX(0); opacity: 1; }
+    to { transform: translateX(100%); opacity: 0; }
+  }
+`;
+document.head.appendChild(style);
+
 // Forgot Password functionality
 const forgotPwSection = document.getElementById('forgotPwSection');
 const forgotPwForm = document.getElementById('forgotPwForm');
@@ -9,6 +63,53 @@ const resendBtn = document.getElementById('resendBtn');
 const resendTimer = document.getElementById('resendTimer');
 
 let countdownInterval = null;
+
+// Cookie utility functions
+function setCookie(name, value, days) {
+    let expires = "";
+    if (days) {
+        const date = new Date();
+        date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+        expires = "; expires=" + date.toUTCString();
+    }
+    document.cookie = name + "=" + (value || "") + expires + "; path=/";
+}
+
+function getCookie(name) {
+    const nameEQ = name + "=";
+    const ca = document.cookie.split(';');
+    for (let i = 0; i < ca.length; i++) {
+        let c = ca[i];
+        while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+        if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
+    }
+    return null;
+}
+
+function deleteCookie(name) {
+    document.cookie = name + '=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+}
+
+// Check for existing session on page load
+function checkExistingSession() {
+    const token = getCookie('token');
+    const userEmail = getCookie('userEmail');
+    
+    if (token && userEmail) {
+        console.log('✅ Found existing session cookie');
+        // Verify token is still valid
+        localStorage.setItem('token', token);
+        // Redirect to expense page
+        window.location.href = "/expense";
+        return true;
+    }
+    return false;
+}
+
+// Initialize - check for existing session
+document.addEventListener('DOMContentLoaded', function() {
+    checkExistingSession();
+});
 
 if (showForgotPw) {
   showForgotPw.addEventListener('click', () => {
@@ -69,7 +170,7 @@ function clearCountdown() {
 async function handleResendEmail() {
   const email = forgotEmail.value.trim();
   if (!email) {
-    alert('Email is required');
+    showToast('Email is required', 'error');
     return;
   }
 
@@ -86,26 +187,26 @@ async function handleResendEmail() {
     const data = await res.json();
     
     if (res.ok) {
-      alert(data.message + (data.expiresIn ? ` (expires in ${data.expiresIn})` : ''));
+      showToast(data.message + (data.expiresIn ? ` (expires in ${data.expiresIn})` : ''), 'success');
     } else if (res.status === 429) {
       // Rate limited - show countdown
-      alert(data.message);
+      showToast(data.message, 'warning');
       if (data.remainingMinutes) {
         showResendButton(data.remainingMinutes);
       }
     } else if (res.status === 410) {
       // Token expired - need new request
-      alert(data.message);
+      showToast(data.message, 'warning');
       hideResendButton();
     } else if (res.status === 404 && data.needsNewRequest) {
       // No existing request - need to submit new one
-      alert(data.message);
+      showToast(data.message, 'warning');
       hideResendButton();
     } else {
-      alert(data.message || 'Failed to resend email');
+      showToast(data.message || 'Failed to resend email', 'error');
     }
   } catch (err) {
-    alert('Network error');
+    showToast('Network error', 'error');
     console.error('Resend email error:', err);
   } finally {
     if (resendBtn) resendBtn.disabled = false;
@@ -120,7 +221,7 @@ if (forgotPwForm) {
   forgotPwForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const email = forgotEmail.value.trim();
-    if (!email) return alert('Email required');
+    if (!email) return showToast('Email is required', 'error');
 
     try {
       console.log('📧 Sending forgot pw to:', email);
@@ -133,12 +234,12 @@ if (forgotPwForm) {
       
       if (res.status === 429) {
         // Rate limited
-        alert(data.message);
+        showToast(data.message, 'warning');
         if (data.canResend && data.remainingMinutes) {
           showResendButton(data.remainingMinutes);
         }
       } else if (res.ok) {
-        alert(data.message);
+        showToast(data.message, 'success');
         if (res.ok) {
           forgotEmail.value = '';
           // Show resend button after successful request
@@ -148,10 +249,10 @@ if (forgotPwForm) {
           }, 1000);
         }
       } else {
-        alert(data.message);
+        showToast(data.message, 'error');
       }
     } catch (err) {
-      alert('Network error');
+      showToast('Network error', 'error');
       console.error('Forgot pw error:', err);
     }
   });
@@ -163,9 +264,10 @@ document.getElementById("loginForm").addEventListener("submit", async (e) => {
 
     const email = document.getElementById("email").value.trim();
     const password = document.getElementById("password").value.trim();
+    const rememberMe = document.getElementById("rememberMe")?.checked || false;
 
     try {
-        console.log('🔐 Attempting login with email:', email);
+        console.log('🔐 Attempting login with email:', email, '| Remember Me:', rememberMe);
         
         const res = await fetch("/api/auth/login", {
             method: "POST",
@@ -183,24 +285,35 @@ document.getElementById("loginForm").addEventListener("submit", async (e) => {
                 console.log('✅ Token length:', data.token.length);
                 console.log('✅ Token preview:', data.token.substring(0, 50) + '...');
                 
+                // If "Remember Me" is checked, store in cookie for 7 days
+                if (rememberMe) {
+                    setCookie('token', data.token, 7);
+                    setCookie('userEmail', email, 7);
+                    console.log('✅ Session saved to cookie for 7 days');
+                } else {
+                    // Clear any existing cookies if remember me is not checked
+                    deleteCookie('token');
+                    deleteCookie('userEmail');
+                }
+                
                 // Verify token was saved
                 const savedToken = localStorage.getItem('token');
                 console.log('✅ Token verification - saved:', savedToken ? 'YES' : 'NO');
             } else {
                 console.warn('⚠️ No token in response');
             }
-            alert("User login successful ✅");
+            showToast('User login successful!', 'success');
             // Redirect to expense page
             setTimeout(() => {
                 window.location.href = "/expense";
             }, 500);
         } else {
-            alert(data.message);
+            showToast(data.message, 'error');
             console.error('❌ Login failed:', data.message);
         }
 
     } catch (err) {
-        alert("Server error");
+        showToast('Server error', 'error');
         console.error('❌ Login error:', err);
     }
 });

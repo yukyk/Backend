@@ -1,5 +1,94 @@
 console.log('expense script loaded');
 
+// Toast notification system
+function showToast(message, type = 'success') {
+  // Remove existing toasts
+  const existingToast = document.querySelector('.toast-notification');
+  if (existingToast) existingToast.remove();
+  
+  const toast = document.createElement('div');
+  toast.className = 'toast-notification';
+  toast.style.cssText = `
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 15px 25px;
+    border-radius: 8px;
+    color: white;
+    font-weight: 500;
+    z-index: 10000;
+    animation: slideIn 0.3s ease;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    max-width: 350px;
+  `;
+  
+  if (type === 'success') {
+    toast.style.background = 'linear-gradient(135deg, #27ae60, #219a52)';
+  } else if (type === 'error') {
+    toast.style.background = 'linear-gradient(135deg, #e74c3c, #c0392b)';
+  } else if (type === 'info') {
+    toast.style.background = 'linear-gradient(135deg, #635BFF, #5245d8)';
+  } else if (type === 'warning') {
+    toast.style.background = 'linear-gradient(135deg, #f39c12, #e67e22)';
+  }
+  
+  toast.textContent = message;
+  document.body.appendChild(toast);
+  
+  setTimeout(() => {
+    toast.style.animation = 'slideOut 0.3s ease';
+    setTimeout(() => toast.remove(), 300);
+  }, 3000);
+}
+
+// Add animation styles
+const style = document.createElement('style');
+style.textContent = `
+  @keyframes slideIn {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+  @keyframes slideOut {
+    from { transform: translateX(0); opacity: 1; }
+    to { transform: translateX(100%); opacity: 0; }
+  }
+`;
+document.head.appendChild(style);
+
+// Cookie utility functions
+function setCookie(name, value, days) {
+    let expires = "";
+    if (days) {
+        const date = new Date();
+        date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+        expires = "; expires=" + date.toUTCString();
+    }
+    document.cookie = name + "=" + (value || "") + expires + "; path=/";
+}
+
+function getCookie(name) {
+    const nameEQ = name + "=";
+    const ca = document.cookie.split(';');
+    for (let i = 0; i < ca.length; i++) {
+        let c = ca[i];
+        while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+        if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
+    }
+    return null;
+}
+
+function deleteCookie(name) {
+    document.cookie = name + '=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+}
+
+// Logout function
+function logout() {
+    localStorage.removeItem('token');
+    deleteCookie('token');
+    deleteCookie('userEmail');
+    window.location.href = '/';
+}
+
 // Get JWT token from localStorage
 function getToken() {
   const token = localStorage.getItem('token');
@@ -11,7 +100,7 @@ function getToken() {
 function checkAuth() {
   const token = getToken();
   if (!token) {
-    alert('Not authenticated. Please login first.');
+    showToast('Not authenticated. Please login first.', 'warning');
     window.location.href = '/';
     return false;
   }
@@ -29,6 +118,30 @@ axios.interceptors.request.use((config) => {
   }
   return config;
 });
+
+// Set up response interceptor to handle HTTP errors properly
+axios.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response) {
+      // Server responded with error status
+      console.error('❌ HTTP Error:', error.response.status, error.response.data);
+      
+      // For 401, redirect to login
+      if (error.response.status === 401) {
+        showToast('Session expired - please login again', 'error');
+        setTimeout(() => logout(), 1500);
+      }
+    } else if (error.request) {
+      // Request made but no response
+      console.error('❌ No response received:', error.request);
+    } else {
+      // Error setting up request
+      console.error('❌ Request error:', error.message);
+    }
+    return Promise.reject(error);
+  }
+);
 
 document.addEventListener('DOMContentLoaded', function initializeExpenseApp() {
   console.log('🚀 Expense app initializing...');
@@ -151,7 +264,7 @@ function renderExpenses(items){
       
       const id = delBtn.dataset.id;
       if(!id) {
-        alert('❌ Invalid expense ID');
+        showToast('❌ Invalid expense ID', 'error');
         return;
       }
       
@@ -175,7 +288,7 @@ function renderExpenses(items){
           status: err.response?.status,
           data: err.response?.data
         });
-        alert('❌ Delete failed: ' + (err.response?.data?.error || 'Unknown error'));
+        showToast('❌ Delete failed: ' + (err.response?.data?.error || 'Unknown error'), 'error');
       }
     });
 
@@ -193,7 +306,7 @@ function renderExpenses(items){
 function handleLeaderboard() {
   const leaderboardBtn = document.getElementById('leaderboardBtn');
   if (leaderboardBtn.classList.contains('locked')) {
-    alert('Buy premium membership to access the leaderboard.');
+    showToast('Buy premium membership to access the leaderboard.', 'info');
   } else {
     showLeaderboard();
   }
@@ -229,7 +342,7 @@ async function showLeaderboard() {
     document.getElementById('leaderboardModal').style.display = 'flex';
   } catch (err) {
     console.error('Error fetching leaderboard:', err);
-    alert('Error loading leaderboard. Please try again.');
+    showToast('Error loading leaderboard. Please try again.', 'error');
   }
 }
 
@@ -256,7 +369,7 @@ document.addEventListener('DOMContentLoaded', function() {
       const categoryEl = document.getElementById('category');
 
       if (!amountEl || !descriptionEl) {
-        alert('❌ Form inputs missing!');
+        showToast('❌ Form inputs missing!', 'error');
         return;
       }
 
@@ -267,7 +380,7 @@ document.addEventListener('DOMContentLoaded', function() {
       console.log('📤 Submitting:', { amount, description, category });
       
       if (!amount || !description || amount <= 0) {
-        alert('❌ Please enter valid amount (>0) and description');
+        showToast('❌ Please enter valid amount (>0) and description', 'error');
         return;
       }
 
@@ -278,11 +391,32 @@ document.addEventListener('DOMContentLoaded', function() {
           description, 
           category, 
           status: 'pending' 
+        }, {
+          validateStatus: function (status) {
+            return status < 500; // Only reject if status is 500 or above
+          }
         });
+        
+        // Check if response indicates an error
+        if (response.status >= 400) {
+          throw new Error(response.data?.error || `Server error: ${response.status}`);
+        }
+        
         console.log('✅ SUCCESS:', response.data);
+        
+        // Reset form and refresh data
         expenseForm.reset();
-        fetchExpenses();
-        alert('✅ Expense added successfully!');
+        
+        // Wrap refresh operations in try-catch to prevent silent failures
+        try {
+          fetchExpenses();
+          fetchIncomes();
+          updateBalance();
+        } catch (refreshErr) {
+          console.error('❌ Refresh error (expense was added):', refreshErr);
+        }
+        
+        showToast('✅ Expense added successfully!', 'success');
       } catch (err) {
         console.error('❌ ADD ERROR:', {
           status: err.response?.status,
@@ -291,8 +425,8 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         const errorMsg = err.response?.data?.error || 
                         (err.response?.status === 401 ? 'Session expired - please login again' : 
-                        'Failed to add expense');
-        alert(`❌ ${errorMsg}`);
+                        err.message || 'Failed to add expense');
+        showToast(`❌ ${errorMsg}`, 'error');
       }
     });
     
@@ -349,7 +483,7 @@ async function handleInsights() {
     const res = await axios.get('/api/auth/insights');
     showInsightsModal(res.data.insights);
   } catch (err) {
-    alert(err.response?.data?.error || 'Insights failed');
+    showToast(err.response?.data?.error || 'Insights failed', 'error');
   }
 }
 
@@ -366,6 +500,310 @@ function showInsightsModal(insights) {
   `;
   document.body.appendChild(modal.firstElementChild);
 }
+
+// Fetch and display incomes
+async function fetchIncomes() {
+  if (!checkAuth()) return;
+  
+  try {
+    const res = await axios.get('/api/auth/get-incomes');
+    const incomes = res.data || [];
+    window.allIncomes = incomes;
+    
+    // Calculate total income
+    const totalIncome = incomes.reduce((sum, inc) => sum + Number(inc.amount || 0), 0);
+    
+    // Update total income display
+    const totalIncomeEl = document.getElementById('totalIncome');
+    if (totalIncomeEl) {
+      totalIncomeEl.textContent = `$${totalIncome.toFixed(2)}`;
+    }
+    
+    // Update balance
+    updateBalance();
+    
+    // Return incomes for list rendering
+    return incomes;
+  } catch(err) {
+    console.error('Error fetching incomes:', err);
+    return [];
+  }
+}
+
+// Update balance (Income - Expenses)
+function updateBalance() {
+  const totalIncomeEl = document.getElementById('totalIncome');
+  const totalExpensesEl = document.getElementById('totalExpenses');
+  const balanceEl = document.getElementById('balance');
+  const profitLossEl = document.getElementById('profitLossIndicator');
+  
+  if (!balanceEl) return;
+  
+  // Get totals from the summary cards
+  const totalIncome = parseFloat(totalIncomeEl?.textContent?.replace('$', '') || 0);
+  const totalExpenses = parseFloat(totalExpensesEl?.textContent?.replace('$', '') || 0);
+  
+  const balance = totalIncome - totalExpenses;
+  balanceEl.textContent = `$${balance.toFixed(2)}`;
+  
+  // Update profit/loss indicator
+  if (profitLossEl) {
+    if (balance > 0) {
+      profitLossEl.innerHTML = '📈 In Profit';
+      profitLossEl.style.color = '#27ae60';
+      profitLossEl.style.background = 'rgba(39, 174, 96, 0.1)';
+    } else if (balance < 0) {
+      profitLossEl.innerHTML = '📉 In Loss';
+      profitLossEl.style.color = '#e74c3c';
+      profitLossEl.style.background = 'rgba(231, 76, 60, 0.1)';
+    } else {
+      profitLossEl.innerHTML = '⚖️ Break Even';
+      profitLossEl.style.color = '#f39c12';
+      profitLossEl.style.background = 'rgba(243, 156, 18, 0.1)';
+    }
+  }
+}
+
+// Add income form submission handler
+document.addEventListener('DOMContentLoaded', function() {
+  const incomeForm = document.getElementById('incomeForm');
+  if(incomeForm) {
+    incomeForm.addEventListener('submit', async function(e) {
+      e.preventDefault();
+      
+      if (!checkAuth()) return;
+      
+      const incomeAmountEl = document.getElementById('incomeAmount');
+      const incomeDescriptionEl = document.getElementById('incomeDescription');
+      const incomeCategoryEl = document.getElementById('incomeCategory');
+      
+      const amount = parseFloat(incomeAmountEl?.value?.trim());
+      const description = incomeDescriptionEl?.value?.trim();
+      const category = incomeCategoryEl?.value?.trim() || 'Regular Income';
+      
+      if (!amount || !description || amount <= 0) {
+        showToast('❌ Please enter valid income amount and description', 'error');
+        return;
+      }
+      
+      try {
+        const response = await axios.post('/api/auth/add-income', {
+          amount,
+          description,
+          category
+        });
+        
+        incomeForm.reset();
+        fetchIncomes();
+        updateBalance();
+        showToast('✅ Income added successfully!', 'success');
+        
+        // Refresh the list if on income tab
+        if (currentViewType === 'income') {
+          fetchIncomesForList();
+        }
+      } catch (err) {
+        console.error('Error adding income:', err);
+        showToast(err.response?.data?.error || 'Failed to add income', 'error');
+      }
+    });
+  }
+  
+  // Side hustle income form
+  const sideHustleForm = document.getElementById('sideHustleForm');
+  if(sideHustleForm) {
+    sideHustleForm.addEventListener('submit', async function(e) {
+      e.preventDefault();
+      
+      if (!checkAuth()) return;
+      
+      const hustleAmountEl = document.getElementById('hustleAmount');
+      const hustleDescriptionEl = document.getElementById('hustleDescription');
+      
+      const amount = parseFloat(hustleAmountEl?.value?.trim());
+      const description = hustleDescriptionEl?.value?.trim();
+      
+      if (!amount || !description || amount <= 0) {
+        showToast('❌ Please enter valid amount and description', 'error');
+        return;
+      }
+      
+      try {
+        const response = await axios.post('/api/auth/add-income', {
+          amount,
+          description,
+          category: 'Side Hustle'
+        });
+        
+        sideHustleForm.reset();
+        fetchIncomes();
+        updateBalance();
+        showToast('✅ Side hustle income added!', 'success');
+        
+        // Refresh the list if on income tab
+        if (currentViewType === 'income') {
+          fetchIncomesForList();
+        }
+      } catch (err) {
+        console.error('Error adding side hustle income:', err);
+        showToast(err.response?.data?.error || 'Failed to add side hustle income', 'error');
+      }
+    });
+  }
+});
+
+// Fetch incomes for list display
+async function fetchIncomesForList() {
+  if (!checkAuth()) return;
+  
+  try {
+    const res = await axios.get('/api/auth/get-incomes');
+    const incomes = res.data || [];
+    renderIncomes(incomes);
+  } catch(err) {
+    console.error('Error fetching incomes:', err);
+  }
+}
+
+// Render incomes list
+function renderIncomes(incomes) {
+  if (!window.expenseList) return;
+  
+  window.expenseList.innerHTML = '';
+  
+  if (!incomes || incomes.length === 0) {
+    const empty = document.createElement('li');
+    empty.textContent = 'No income entries yet';
+    empty.style.color = '#8792a2';
+    window.expenseList.appendChild(empty);
+    return;
+  }
+  
+  incomes.forEach(item => {
+    const li = document.createElement('li');
+    li.style.padding = '12px 0';
+    li.style.borderBottom = '1px solid #eef2f6';
+    
+    const row = document.createElement('div');
+    row.style.display = 'flex';
+    row.style.justifyContent = 'space-between';
+    row.style.alignItems = 'center';
+    row.style.gap = '12px';
+    
+    const left = document.createElement('div');
+    
+    const desc = document.createElement('div');
+    desc.textContent = item.description || '';
+    desc.style.fontWeight = '600';
+    desc.style.color = '#1a1f36';
+    
+    const meta = document.createElement('div');
+    meta.style.color = '#6b7385';
+    meta.style.fontSize = '13px';
+    const dateStr = item.createdAt ? new Date(item.createdAt).toLocaleString() : '';
+    meta.innerHTML = `${item.category || 'Income'} • ${dateStr}`;
+    
+    left.appendChild(desc);
+    left.appendChild(meta);
+    
+    const right = document.createElement('div');
+    right.style.textAlign = 'right';
+    
+    const amt = document.createElement('div');
+    amt.style.fontWeight = '700';
+    amt.style.color = '#27ae60';
+    const value = Number(item.amount || 0).toFixed(2);
+    amt.textContent = `+$${value}`;
+    
+    const actions = document.createElement('div');
+    actions.style.marginTop = '6px';
+    
+    const delBtn = document.createElement('button');
+    delBtn.textContent = 'Delete';
+    delBtn.dataset.id = item.id;
+    delBtn.style.background = '#fff';
+    delBtn.style.border = '1px solid #e3e8ee';
+    delBtn.style.padding = '6px 8px';
+    delBtn.style.borderRadius = '6px';
+    delBtn.style.cursor = 'pointer';
+    
+    delBtn.addEventListener('click', async function() {
+      const id = delBtn.dataset.id;
+      if (!id) {
+        showToast('❌ Invalid income ID', 'error');
+        return;
+      }
+      
+      if (!confirm(`Delete income $${Number(item.amount || 0).toFixed(2)}?`)) {
+        return;
+      }
+      
+      try {
+        await axios.delete(`/api/auth/delete-income/${id}`);
+        fetchIncomes();
+        updateBalance();
+        fetchIncomesForList();
+        showToast('✅ Income deleted!', 'success');
+      } catch(err) {
+        showToast('❌ Delete failed: ' + (err.response?.data?.error || 'Unknown error'), 'error');
+      }
+    });
+    
+    actions.appendChild(delBtn);
+    right.appendChild(amt);
+    right.appendChild(actions);
+    
+    row.appendChild(left);
+    row.appendChild(right);
+    li.appendChild(row);
+    window.expenseList.appendChild(li);
+  });
+}
+
+// Update view type when switching tabs
+function setViewType(type) {
+  currentViewType = type;
+  
+  const expenseTab = document.getElementById('expenseTab');
+  const incomeTab = document.getElementById('incomeTab');
+  
+  if (expenseTab && incomeTab) {
+    if (type === 'expense') {
+      expenseTab.classList.add('active');
+      incomeTab.classList.remove('active');
+      fetchExpenses();
+    } else {
+      incomeTab.classList.add('active');
+      expenseTab.classList.remove('active');
+      fetchIncomesForList();
+    }
+  }
+}
+
+// Calculate totals on initial load
+document.addEventListener('DOMContentLoaded', async function() {
+  if (checkAuth()) {
+    // Calculate total expenses
+    try {
+      const res = await axios.get('/api/auth/get-expenses');
+      const expenses = res.data || [];
+      window.allExpenses = expenses;
+      const totalExpenses = expenses.reduce((sum, exp) => sum + Number(exp.amount || 0), 0);
+      const totalExpensesEl = document.getElementById('totalExpenses');
+      if (totalExpensesEl) {
+        totalExpensesEl.textContent = `$${totalExpenses.toFixed(2)}`;
+      }
+    } catch (err) {
+      console.error('Error calculating totals:', err);
+    }
+    
+    // Calculate total incomes
+    await fetchIncomes();
+    
+    // Update balance
+    updateBalance();
+  }
+});
 
 // Initial load now handled in DOMContentLoaded
 console.log('📝 script.js fully loaded');

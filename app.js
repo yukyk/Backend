@@ -10,6 +10,7 @@ const passwordRoutes = require("./Routes/passwordRoutes");
 const sequelize = require("./Utils/util");
 const Signup = require("./Models/signupModel");
 const Expense = require("./Models/expenseModel");
+const Income = require("./Models/incomeModel");
 const Order = require("./Models/orderModel");
 const ForgotPasswordRequests = require("./Models/forgotPasswordRequests");
 
@@ -22,6 +23,9 @@ app.use(express.urlencoded({ extended: true }));
 // Define associations
 Signup.hasMany(Expense, { foreignKey: 'userId' });
 Expense.belongsTo(Signup, { foreignKey: 'userId' });
+
+Signup.hasMany(Income, { foreignKey: 'userId' });
+Income.belongsTo(Signup, { foreignKey: 'userId' });
 
 Signup.hasMany(Order, { foreignKey: 'userId' });
 Order.belongsTo(Signup, { foreignKey: 'userId' });
@@ -64,13 +68,61 @@ app.get("/password/resetpassword/:id", (req, res) => {
     res.sendFile(path.join(__dirname, "View", "reset-password.html"));
 });
 
+// Helper function to clean up excess indexes
+async function cleanupExcessIndexes() {
+    try {
+        const [results] = await sequelize.query(`
+            SELECT INDEX_NAME 
+            FROM INFORMATION_SCHEMA.STATISTICS 
+            WHERE TABLE_SCHEMA = DATABASE() 
+            AND TABLE_NAME = 'signup' 
+            AND INDEX_NAME != 'PRIMARY'
+            AND SEQ_IN_INDEX > 4
+        `);
+        
+        for (const idx of results) {
+            try {
+                await sequelize.query(`DROP INDEX \`${idx.INDEX_NAME}\` ON \`signup\``);
+                console.log(`Dropped excess index: ${idx.INDEX_NAME}`);
+            } catch (dropErr) {
+                console.log(`Could not drop index ${idx.INDEX_NAME}:`, dropErr.message);
+            }
+        }
+    } catch (err) {
+        console.log('Index cleanup skipped:', err.message);
+    }
+}
+
+// Sync database with error handling for index limits
 sequelize.sync({ alter: true }).then(async () => {
     console.log('Database synced successfully');
+    
+    // Clean up any excess indexes that might cause issues
+    await cleanupExcessIndexes();
     
     app.listen(3000, () => {
         console.log("Server running at http://localhost:3000");
     });
-}).catch(err => {
-    console.error('Database sync failed:', err);
-    process.exit(1);
+}).catch(async (err) => {
+    // If sync fails due to too many keys, try without alter
+    if (err.code === 'ER_TOO_MANY_KEYS' || err.parent?.code === 'ER_TOO_MANY_KEYS') {
+        console.log('Detected too many indexes. Retrying sync without alter...');
+        try {
+            await sequelize.sync({ alter: false });
+            console.log('Database synced successfully (without alter)');
+            
+            // Clean up excess indexes
+            await cleanupExcessIndexes();
+            
+            app.listen(3000, () => {
+                console.log("Server running at http://localhost:3000");
+            });
+        } catch (retryErr) {
+            console.error('Database sync retry failed:', retryErr);
+            process.exit(1);
+        }
+    } else {
+        console.error('Database sync failed:', err);
+        process.exit(1);
+    }
 });

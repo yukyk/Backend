@@ -18,4 +18,10 @@ router.get('/leaderboard', authJwt, expenseController.getLeaderboard);
 router.get('/suggest-category', expenseController.suggestCategory);  // Public AI
 router.get('/insights', authJwt, expenseController.getInsights);  // Premium AI
 
+/* Income routes (protected) */
+router.post('/add-income', authJwt, expenseController.addIncome);
+router.get('/get-incomes', authJwt, expenseController.getIncomes);
+router.delete('/delete-income/:id', authJwt, expenseController.deleteIncome);
+router.put('/update-income/:id', authJwt, expenseController.updateIncome);
+
 module.exports = router;

@@ -18,6 +18,12 @@
       color: #1a1f36;
     }
 
+    .header-buttons {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
     .premium-btn {
       background: linear-gradient(135deg, #635BFF, #5245d8);
       color: white;
@@ -75,42 +81,467 @@
       transform: none;
       box-shadow: none;
     }
+
+    .logout-btn {
+      background: #e74c3c;
+      color: white;
+      border: none;
+      padding: 12px 25px;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .logout-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(231, 76, 60, 0.3);
+    }
+
+    /* Category Tabs */
+    .category-tabs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      border-bottom: 2px solid #e3e8ee;
+      padding-bottom: 10px;
+    }
+
+    .category-tab {
+      padding: 10px 20px;
+      border: none;
+      background: #f8f9fa;
+      border-radius: 8px 8px 0 0;
+      cursor: pointer;
+      font-weight: 600;
+      color: #6b7385;
+      transition: all 0.3s ease;
+    }
+
+    .category-tab.active {
+      background: #635BFF;
+      color: white;
+    }
+
+    .category-tab:hover:not(.active) {
+      background: #e3e8ee;
+    }
+
+    /* Time Period Filters */
+    .filter-section {
+      display: flex;
+      gap: 15px;
+      margin-bottom: 20px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .filter-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .filter-label {
+      font-weight: 600;
+      color: #1a1f36;
+    }
+
+    .filter-btn {
+      padding: 8px 16px;
+      border: 2px solid #e3e8ee;
+      background: white;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 500;
+      color: #6b7385;
+      transition: all 0.3s ease;
+    }
+
+    .filter-btn.active {
+      border-color: #635BFF;
+      background: #635BFF;
+      color: white;
+    }
+
+    .filter-btn:hover:not(.active) {
+      border-color: #635BFF;
+    }
+
+    /* Download Button */
+    .download-btn {
+      background: linear-gradient(135deg, #27ae60, #219a52);
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-left: auto;
+    }
+
+    .download-btn:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(39, 174, 96, 0.3);
+    }
+
+    .download-btn:disabled {
+      background: linear-gradient(135deg, #bdc3c7, #95a5a6);
+      cursor: not-allowed;
+    }
+
+    /* Summary Cards */
+    .summary-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+      margin-bottom: 25px;
+    }
+
+    .summary-card {
+      background: linear-gradient(135deg, #635BFF, #5245d8);
+      color: white;
+      padding: 20px;
+      border-radius: 12px;
+      text-align: center;
+    }
+
+    .summary-card.expense {
+      background: linear-gradient(135deg, #e74c3c, #c0392b);
+    }
+
+    .summary-card.income {
+      background: linear-gradient(135deg, #27ae60, #219a52);
+    }
+
+    .summary-card.balance {
+      background: linear-gradient(135deg, #f39c12, #e67e22);
+    }
+
+    .summary-card.profit-loss {
+      background: linear-gradient(135deg, #2c3e50, #34495e);
+      cursor: pointer;
+    }
+
+    .summary-card.profit-loss:hover {
+      transform: scale(1.02);
+    }
+
+    .profit-indicator {
+      font-size: 18px;
+      font-weight: 700;
+      padding: 8px 16px;
+      border-radius: 8px;
+      margin-top: 10px;
+      display: inline-block;
+    }
+
+    .summary-card h3 {
+      margin: 0 0 10px 0;
+      font-size: 14px;
+      opacity: 0.9;
+    }
+
+    .summary-card .amount {
+      font-size: 28px;
+      font-weight: 700;
+    }
+
+    /* Expense List Styling */
+    .expense-section {
+      margin-top: 20px;
+    }
+
+    .expense-section-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: #1a1f36;
+      margin-bottom: 15px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    /* Type Toggle */
+    .type-toggle {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .type-btn {
+      flex: 1;
+      padding: 12px;
+      border: 2px solid #e3e8ee;
+      background: white;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      color: #6b7385;
+      transition: all 0.3s ease;
+    }
+
+    .type-btn.active {
+      border-color: #635BFF;
+      background: #635BFF;
+      color: white;
+    }
+
+    .type-btn:hover:not(.active) {
+      border-color: #635BFF;
+    }
+
+    /* Form Sections - hidden by default */
+    .form-section {
+      display: none;
+    }
+
+    .form-section.active {
+      display: block;
+    }
+
+    .income-toggle {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .income-type-btn {
+      flex: 1;
+      padding: 12px;
+      border: 2px solid #e3e8ee;
+      background: white;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      color: #6b7385;
+      transition: all 0.3s ease;
+    }
+
+    .income-type-btn.active {
+      border-color: #27ae60;
+      background: #27ae60;
+      color: white;
+    }
+
+    .income-type-btn:hover:not(.active) {
+      border-color: #27ae60;
+    }
+
+    /* Date Range Picker */
+    .date-range {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .date-input {
+      padding: 8px 12px;
+      border: 2px solid #e3e8ee;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+
+    .date-input:focus {
+      outline: none;
+      border-color: #635BFF;
+    }
+
+    /* Income Form Styles */
+    .income-section {
+      margin-top: 30px;
+      padding: 20px;
+      background: linear-gradient(135deg, rgba(39, 174, 96, 0.05), rgba(33, 150, 82, 0.05));
+      border-radius: 12px;
+      border: 1px solid rgba(39, 174, 96, 0.2);
+    }
+
+    .income-section h3 {
+      margin: 0 0 20px 0;
+      color: #27ae60;
+      font-size: 20px;
+    }
+
+    .income-form {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+
+    .income-form .input-group {
+      margin: 0;
+    }
+
+    .income-form .submit-btn {
+      background: linear-gradient(135deg, #27ae60, #219a52);
+      grid-column: 1 / -1;
+    }
+
+    .income-form .submit-btn:hover {
+      box-shadow: 0 5px 15px rgba(39, 174, 96, 0.3);
+    }
+
+    /* Side Hustle Section */
+    .side-hustle-section {
+      margin-top: 20px;
+      padding: 20px;
+      background: linear-gradient(135deg, rgba(99, 91, 255, 0.05), rgba(82, 69, 216, 0.05));
+      border-radius: 12px;
+      border: 1px solid rgba(99, 91, 255, 0.2);
+    }
+
+    .side-hustle-section h3 {
+      margin: 0 0 15px 0;
+      color: #635BFF;
+      font-size: 18px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .side-hustle-form {
+      display: grid;
+      grid-template-columns: 1fr 2fr auto;
+      gap: 15px;
+      align-items: end;
+    }
+
+    .side-hustle-form .submit-btn {
+      background: linear-gradient(135deg, #635BFF, #5245d8);
+      height: 48px;
+    }
+
+    .side-hustle-form .submit-btn:hover {
+      box-shadow: 0 5px 15px rgba(99, 91, 255, 0.3);
+    }
+
+    .side-hustle-examples {
+      margin-top: 10px;
+      font-size: 13px;
+      color: #6b7385;
+    }
+
+    .side-hustle-examples span {
+      display: inline-block;
+      background: rgba(99, 91, 255, 0.1);
+      padding: 4px 10px;
+      border-radius: 15px;
+      margin: 3px 3px 0 0;
+      font-size: 12px;
+    }
   </style>
 </head>
 <body>
-</body>
 
   <div class="login-container">
-    <div class="login-card" style="max-width:850px; width:100%;">
+    <div class="login-card" style="max-width:950px; width:100%;">
 
-      <div class="login-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
+      <div class="page-header">
         <div>
           <h1 style="margin: 0 0 5px 0;">Expense Tracker</h1>
-          <p style="margin: 0;">Add and view your expenses</p>
+          <p style="margin: 0;">Manage your expenses and income</p>
         </div>
-        <button type="button" class="leaderboard-btn" onclick="handleLeaderboard()" id="leaderboardBtn">
-  🏆 Leaderboard
-</button>
-        <button class="premium-btn" onclick="goToPremium()" id="premiumBtn">
-          💎 Buy Premium
+        <div class="header-buttons">
+          <button class="logout-btn" onclick="logout()">
+            🚪 Logout
+          </button>
+          <button type="button" class="leaderboard-btn" onclick="handleLeaderboard()" id="leaderboardBtn">
+            🏆 Leaderboard
+          </button>
+          <button class="premium-btn" onclick="goToPremium()" id="premiumBtn">
+            💎 Buy Premium
+          </button>
+        </div>
+      </div>
+
+      <!-- Summary Cards -->
+      <div class="summary-cards" id="summaryCards">
+        <div class="summary-card expense">
+          <h3>💸 Total Expenses</h3>
+          <div class="amount" id="totalExpenses">$0.00</div>
+        </div>
+        <div class="summary-card income">
+          <h3>💰 Total Income</h3>
+          <div class="amount" id="totalIncome">$0.00</div>
+        </div>
+        <div class="summary-card balance">
+          <h3>📊 Balance</h3>
+          <div class="amount" id="balance">$0.00</div>
+          <div id="profitLossIndicator" class="profit-indicator">⚖️ Break Even</div>
+        </div>
+      </div>
+
+      <!-- Download Button (Premium Only) -->
+      <div style="margin-bottom: 20px; display: flex; justify-content: flex-end;">
+        <button class="download-btn" id="downloadBtn" onclick="downloadExpenses()" disabled>
+          📥 Download Expenses
         </button>
       </div>
 
-      <form id="expenseForm" class="login-form">
+      <!-- Type Toggle (Premium Feature) -->
+      <div class="type-toggle" id="typeToggle">
+        <button class="type-btn active" onclick="setViewType('expense')" id="expenseTab">
+          💸 Add Expense
+        </button>
+        <button class="type-btn" onclick="setViewType('income')" id="incomeTab">
+          💰 Add Income
+        </button>
+      </div>
 
-        <div class="input-group">
-          <input type="number" id="amount" required placeholder=" ">
-          <label>Amount</label>
-          <div class="input-border"></div>
+      <!-- Category Tabs -->
+      <div class="category-tabs">
+        <button class="category-tab active" onclick="setCategory('daily')" id="dailyTab">
+          📅 Daily
+        </button>
+        <button class="category-tab" onclick="setCategory('monthly')" id="monthlyTab">
+          📆 Monthly
+        </button>
+        <button class="category-tab" onclick="setCategory('yearly')" id="yearlyTab">
+          📊 Yearly
+        </button>
+      </div>
+
+      <!-- Time Period Filters -->
+      <div class="filter-section">
+        <div class="filter-group">
+          <span class="filter-label">View:</span>
+          <button class="filter-btn active" onclick="setTimeFilter('daily')" id="dailyFilter">Daily</button>
+          <button class="filter-btn" onclick="setTimeFilter('weekly')" id="weeklyFilter">Weekly</button>
+          <button class="filter-btn" onclick="setTimeFilter('monthly')" id="monthlyFilter">Monthly</button>
         </div>
-
-        <div class="input-group">
-          <input type="text" id="description" required placeholder=" ">
-          <label>Description</label>
-          <div class="input-border"></div>
+        <div class="date-range">
+          <input type="date" id="startDate" class="date-input">
+          <span>to</span>
+          <input type="date" id="endDate" class="date-input">
+          <button class="filter-btn" onclick="applyDateFilter()">Apply</button>
         </div>
+      </div>
 
-       
+      <!-- Expense Form Section -->
+      <div id="expenseFormSection" class="form-section active">
+        <form id="expenseForm" class="login-form">
+
+          <div class="input-group">
+            <input type="number" id="amount" required placeholder=" ">
+            <label>Amount</label>
+            <div class="input-border"></div>
+          </div>
+
+          <div class="input-group">
+            <input type="text" id="description" required placeholder=" ">
+            <label>Description</label>
+            <div class="input-border"></div>
+          </div>
+
+         
   <label for="category">Choose a category:</label>
 <input type="text" id="category" name="category" placeholder="AI will suggest..." style="width:100%; padding:12px; border:1px solid #e3e8ee; border-radius:6px; font-size:16px;">
   <div id="ai-suggestion-container"></div>
@@ -120,11 +551,76 @@
   </button>
   <br><br>
 
-        <button type="submit" class="submit-btn">Add Expense</button>
+        <button type="submit" class="submit-btn">💸 Add Expense</button>
 
-      </form>
+        </form>
+      </div>
 
-      <div style="margin-top:20px">
+      <!-- Income Form Section -->
+      <div id="incomeFormSection" class="form-section">
+        <!-- Income Type Toggle -->
+        <div class="income-toggle">
+          <button class="income-type-btn active" onclick="setIncomeType('regular')" id="regularIncomeTab">
+            💵 Regular Income
+          </button>
+          <button class="income-type-btn" onclick="setIncomeType('hustle')" id="hustleIncomeTab">
+            🚀 Side Hustle
+          </button>
+        </div>
+
+        <!-- Regular Income Form -->
+        <div id="regularIncomeSection">
+          <form id="incomeForm" class="income-form">
+            <div class="input-group">
+              <input type="number" id="incomeAmount" required placeholder=" " step="0.01" min="0.01">
+              <label>Income Amount</label>
+              <div class="input-border"></div>
+            </div>
+
+            <div class="input-group">
+              <input type="text" id="incomeDescription" required placeholder=" ">
+              <label>Description (e.g., Salary, Freelance)</label>
+              <div class="input-border"></div>
+            </div>
+
+            <div class="input-group">
+              <input type="text" id="incomeCategory" placeholder=" " value="Salary">
+              <label>Category</label>
+              <div class="input-border"></div>
+            </div>
+
+            <button type="submit" class="submit-btn">💵 Add Income</button>
+          </form>
+        </div>
+
+        <!-- Side Hustle Form -->
+        <div id="sideHustleSection" style="display: none;">
+          <form id="sideHustleForm" class="side-hustle-form">
+            <div class="input-group">
+              <input type="number" id="hustleAmount" required placeholder=" " step="0.01" min="0.01">
+              <label>Amount</label>
+              <div class="input-border"></div>
+            </div>
+
+            <div class="input-group">
+              <input type="text" id="hustleDescription" required placeholder=" ">
+              <label>What did you earn from? (e.g., Tutoring, Selling items)</label>
+              <div class="input-border"></div>
+            </div>
+
+            <button type="submit" class="submit-btn">➕ Add</button>
+          </form>
+          <p class="side-hustle-examples">
+            Examples: <span>Freelancing</span><span>selling crafts</span><span>part-time job</span><span>gig work</span><span>tutoring</span><span>consulting</span><span>renting equipment</span>
+          </p>
+        </div>
+      </div>
+
+      <!-- Expense/Income List -->
+      <div class="expense-section">
+        <h2 class="expense-section-title" id="listTitle">
+          📅 Today's Expenses
+        </h2>
         <ul id="expenseList" style="list-style:none;padding-left:0;"></ul>
       </div>
 
@@ -143,88 +639,610 @@
   <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
   <script src="/script.js"></script>
   <script>
-    // Check and update premium status
-    // Check and update premium status
-async function checkPremiumStatus() {
-  const token = getToken();
-  if (!token) return;
+    // Global state
+    let currentCategory = 'daily';
+    let currentTimeFilter = 'daily';
+    let currentViewType = 'expense';
+    let isPremiumUser = false;
+    let allExpenses = [];
+    let allIncomes = [];
 
-  try {
-    const response = await axios.get('/api/payment/premium-status');
-    const { isPremium } = response.data;
-    
-    console.log('✅ Premium status check:', isPremium);  // ADD THIS
-    
-    const premiumBtn = document.getElementById('premiumBtn');
-    const leaderboardBtn = document.getElementById('leaderboardBtn');
-    
-    if (isPremium) {
-      premiumBtn.innerHTML = '✓ Premium Member <span class="premium-badge">ACTIVE</span>';
-      premiumBtn.disabled = true;
-      premiumBtn.style.cursor = 'default';
-      premiumBtn.style.opacity = '0.7';
-      
-      leaderboardBtn.classList.remove('locked');
-      leaderboardBtn.innerHTML = '🏆 Leaderboard';
-      console.log('✅ Leaderboard unlocked');  // ADD THIS
-    } else {
-      leaderboardBtn.classList.add('locked');
-      leaderboardBtn.innerHTML = '🔒 Leaderboard';
-      console.log('❌ Leaderboard locked');  // ADD THIS
+    // Check and update premium status
+    async function checkPremiumStatus() {
+      const token = getToken();
+      if (!token) return;
+
+      try {
+        const response = await axios.get('/api/payment/premium-status');
+        const { isPremium } = response.data;
+        
+        console.log('✅ Premium status check:', isPremium);
+        isPremiumUser = isPremium;
+        
+        const premiumBtn = document.getElementById('premiumBtn');
+        const leaderboardBtn = document.getElementById('leaderboardBtn');
+        const downloadBtn = document.getElementById('downloadBtn');
+        
+        if (isPremium) {
+          premiumBtn.innerHTML = '✓ Premium Member <span class="premium-badge">ACTIVE</span>';
+          premiumBtn.disabled = true;
+          premiumBtn.style.cursor = 'default';
+          premiumBtn.style.opacity = '0.7';
+          
+          leaderboardBtn.classList.remove('locked');
+          leaderboardBtn.innerHTML = '🏆 Leaderboard';
+          
+          // Enable premium features
+          downloadBtn.disabled = false;
+          downloadBtn.title = 'Download your expenses';
+          
+          console.log('✅ Premium features unlocked');
+        } else {
+          leaderboardBtn.classList.add('locked');
+          leaderboardBtn.innerHTML = '🔒 Leaderboard';
+          
+          downloadBtn.disabled = true;
+          downloadBtn.title = 'Buy premium to download expenses';
+          
+          console.log('❌ Premium features locked');
+        }
+      } catch (error) {
+        console.error('Error checking premium status:', error);
+      }
     }
-  } catch (error) {
-    console.error('Error checking premium status:', error);
-  }
-}
 
-// Show leaderboard
-async function showLeaderboard() {
-  try {
-    const res = await axios.get('/api/auth/leaderboard');
-    const leaderboard = res.data;
-    
-    const list = document.getElementById('leaderboardList');
-    list.innerHTML = '';
-    
-    if (leaderboard.length === 0) {
-      list.innerHTML = '<p>No expenses found.</p>';
-    } else {
-      const ul = document.createElement('ul');
-      ul.style.listStyle = 'none';
-      ul.style.padding = '0';
+    // Set category tab
+    function setCategory(category) {
+      currentCategory = category;
       
-      leaderboard.forEach((user, index) => {
-        const li = document.createElement('li');
-        li.style.padding = '10px';
-        li.style.borderBottom = '1px solid #eee';
-        li.innerHTML = `<strong>${index + 1}. ${user.name}</strong> - $${parseFloat(user.totalExpense).toFixed(2)}`;
-        ul.appendChild(li);
+      // Update tab styles
+      document.querySelectorAll('.category-tab').forEach(tab => tab.classList.remove('active'));
+      document.getElementById(category + 'Tab').classList.add('active');
+      
+      // Refresh the list
+      fetchAndRenderEntries();
+    }
+
+    // Set time filter
+    function setTimeFilter(filter) {
+      currentTimeFilter = filter;
+      
+      // Update button styles
+      document.querySelectorAll('.filter-btn').forEach(btn => {
+        if (['daily', 'weekly', 'monthly'].some(f => btn.textContent.toLowerCase().includes(f))) {
+          btn.classList.remove('active');
+        }
       });
       
-      list.appendChild(ul);
+      const filterBtn = document.getElementById(filter + 'Filter');
+      if (filterBtn) filterBtn.classList.add('active');
+      
+      // Set date range based on filter
+      setDateRangeFromFilter(filter);
+      
+      // Refresh the list
+      fetchAndRenderEntries();
     }
-    
-    document.getElementById('leaderboardModal').style.display = 'flex';
-  } catch (err) {
-    console.error('Error fetching leaderboard:', err);
-    alert('Error loading leaderboard. Please try again.');
-  }
-}
 
-// Close modal
-function closeModal() {
-  document.getElementById('leaderboardModal').style.display = 'none';
-}
+    // Set date range based on filter
+    function setDateRangeFromFilter(filter) {
+      const today = new Date();
+      let startDate, endDate;
+      
+      switch(filter) {
+        case 'daily':
+          startDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+          endDate = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59);
+          break;
+        case 'weekly':
+          const dayOfWeek = today.getDay();
+          startDate = new Date(today);
+          startDate.setDate(today.getDate() - dayOfWeek);
+          startDate.setHours(0, 0, 0, 0);
+          endDate = new Date(startDate);
+          endDate.setDate(startDate.getDate() + 6);
+          endDate.setHours(23, 59, 59, 999);
+          break;
+        case 'monthly':
+          startDate = new Date(today.getFullYear(), today.getMonth(), 1);
+          endDate = new Date(today.getFullYear(), today.getMonth() + 1, 0, 23, 59, 59, 999);
+          break;
+      }
+      
+      document.getElementById('startDate').value = formatDate(startDate);
+      document.getElementById('endDate').value = formatDate(endDate);
+    }
+
+    // Format date for input
+    function formatDate(date) {
+      return date.toISOString().split('T')[0];
+    }
+
+    // Apply custom date filter
+    function applyDateFilter() {
+      fetchAndRenderEntries();
+    }
+
+    // Set view type (expense/income)
+    function setViewType(type) {
+      currentViewType = type;
+      
+      // Update button styles
+      document.getElementById('expenseTab').classList.toggle('active', type === 'expense');
+      document.getElementById('incomeTab').classList.toggle('active', type === 'income');
+      
+      // Show/hide form sections
+      const expenseFormSection = document.getElementById('expenseFormSection');
+      const incomeFormSection = document.getElementById('incomeFormSection');
+      
+      if (type === 'expense') {
+        expenseFormSection.classList.add('active');
+        incomeFormSection.classList.remove('active');
+      } else {
+        expenseFormSection.classList.remove('active');
+        incomeFormSection.classList.add('active');
+        // Reset to regular income tab when switching to income
+        setIncomeType('regular');
+      }
+      
+      // Update summary cards visibility
+      const expenseCard = document.querySelector('.summary-card.expense');
+      const incomeCard = document.querySelector('.summary-card.income');
+      
+      if (type === 'expense') {
+        expenseCard.style.display = 'block';
+        incomeCard.style.display = 'none';
+      } else {
+        expenseCard.style.display = 'none';
+        incomeCard.style.display = 'block';
+      }
+      
+      // Refresh the list
+      fetchAndRenderEntries();
+    }
+
+    // Set income type (regular/hustle)
+    function setIncomeType(type) {
+      const regularTab = document.getElementById('regularIncomeTab');
+      const hustleTab = document.getElementById('hustleIncomeTab');
+      const regularSection = document.getElementById('regularIncomeSection');
+      const hustleSection = document.getElementById('sideHustleSection');
+      
+      if (type === 'regular') {
+        regularTab.classList.add('active');
+        hustleTab.classList.remove('active');
+        regularSection.style.display = 'block';
+        hustleSection.style.display = 'none';
+      } else {
+        regularTab.classList.remove('active');
+        hustleTab.classList.add('active');
+        regularSection.style.display = 'none';
+        hustleSection.style.display = 'block';
+      }
+    }
+
+    // Fetch and render entries based on current filters
+    async function fetchAndRenderEntries() {
+      const token = getToken();
+      if (!token) return;
+
+      try {
+        const startDate = document.getElementById('startDate').value;
+        const endDate = document.getElementById('endDate').value;
+
+        // Fetch expenses
+        const expenseRes = await axios.get('/api/auth/get-expenses', {
+          params: { startDate, endDate }
+        });
+        allExpenses = expenseRes.data || [];
+
+        // Fetch incomes
+        const incomeRes = await axios.get('/api/auth/get-incomes', {
+          params: { startDate, endDate }
+        });
+        allIncomes = incomeRes.data || [];
+
+        // Calculate totals
+        const totalExpense = allExpenses.reduce((sum, e) => sum + parseFloat(e.amount || 0), 0);
+        const totalIncome = allIncomes.reduce((sum, i) => sum + parseFloat(i.amount || 0), 0);
+        const balance = totalIncome - totalExpense;
+
+        document.getElementById('totalExpenses').textContent = '$' + totalExpense.toFixed(2);
+        document.getElementById('totalIncome').textContent = '$' + totalIncome.toFixed(2);
+        document.getElementById('balance').textContent = '$' + balance.toFixed(2);
+
+        // Update list title
+        updateListTitle();
+
+        // Render entries based on current view type
+        const entries = currentViewType === 'expense' ? allExpenses : allIncomes;
+        renderEntries(entries);
+
+      } catch (err) {
+        console.error('Error fetching entries:', err);
+      }
+    }
+
+    // Update list title based on filters
+    function updateListTitle() {
+      const titles = {
+        daily: "📅 Today's " + (currentViewType === 'expense' ? 'Expenses' : 'Income'),
+        weekly: '📆 This Week\'s ' + (currentViewType === 'expense' ? 'Expenses' : 'Income'),
+        monthly: '📆 This Month\'s ' + (currentViewType === 'expense' ? 'Expenses' : 'Income')
+      };
+      document.getElementById('listTitle').textContent = titles[currentTimeFilter] || titles.daily;
+    }
+
+    // Render entries list
+    function renderEntries(items) {
+      const list = document.getElementById('expenseList');
+      list.innerHTML = '';
+
+      if (!items || items.length === 0) {
+        const empty = document.createElement('li');
+        empty.textContent = 'No ' + (currentViewType === 'expense' ? 'expenses' : 'income') + ' yet';
+        empty.style.color = '#8792a2';
+        empty.style.padding = '20px';
+        empty.style.textAlign = 'center';
+        list.appendChild(empty);
+        return;
+      }
+
+      // Filter by category (daily = today, monthly = this month, yearly = this year)
+      const filteredItems = filterByCategory(items);
+      
+      if (filteredItems.length === 0) {
+        const empty = document.createElement('li');
+        empty.textContent = 'No ' + currentCategory + ' entries found';
+        empty.style.color = '#8792a2';
+        empty.style.padding = '20px';
+        empty.style.textAlign = 'center';
+        list.appendChild(empty);
+        return;
+      }
+
+      filteredItems.forEach(item => {
+        const li = document.createElement('li');
+        li.style.padding = '12px 0';
+        li.style.borderBottom = '1px solid #eef2f6';
+
+        const row = document.createElement('div');
+        row.style.display = 'flex';
+        row.style.justifyContent = 'space-between';
+        row.style.alignItems = 'center';
+        row.style.gap = '12px';
+
+        const left = document.createElement('div');
+
+        const desc = document.createElement('div');
+        desc.textContent = item.description || '';
+        desc.style.fontWeight = '600';
+        desc.style.color = '#1a1f36';
+
+        const meta = document.createElement('div');
+        meta.style.color = '#6b7385';
+        meta.style.fontSize = '13px';
+        const dateStr = item.createdAt ? new Date(item.createdAt).toLocaleString() : '';
+        meta.innerHTML = `${item.category || ''} • ${dateStr}`;
+
+        left.appendChild(desc);
+        left.appendChild(meta);
+
+        const right = document.createElement('div');
+        right.style.textAlign = 'right';
+
+        const amt = document.createElement('div');
+        amt.style.fontWeight = '700';
+        amt.style.color = item.entryType === 'income' ? '#27ae60' : '#635BFF';
+        const value = Number(item.amount || 0).toFixed(2);
+        amt.textContent = (item.entryType === 'income' ? '+$' : '-$') + value;
+
+        const actions = document.createElement('div');
+        actions.style.marginTop = '6px';
+
+        const editBtn = document.createElement('button');
+        editBtn.textContent = 'Edit';
+        editBtn.dataset.id = item.id;
+        editBtn.style.background = '#fff';
+        editBtn.style.border = '1px solid #e3e8ee';
+        editBtn.style.padding = '6px 8px';
+        editBtn.style.borderRadius = '6px';
+        editBtn.style.cursor = 'pointer';
+        editBtn.style.marginRight = '5px';
+
+        editBtn.addEventListener('click', function() {
+          editEntry(item);
+        });
+
+        const delBtn = document.createElement('button');
+        delBtn.textContent = 'Delete';
+        delBtn.dataset.id = item.id;
+        delBtn.style.background = '#fff';
+        delBtn.style.border = '1px solid #e3e8ee';
+        delBtn.style.padding = '6px 8px';
+        delBtn.style.borderRadius = '6px';
+        delBtn.style.cursor = 'pointer';
+
+        delBtn.addEventListener('click', async function() {
+          const id = delBtn.dataset.id;
+          if (!confirm(`Delete entry $${Number(item.amount || 0).toFixed(2)}?`)) return;
+          
+          try {
+            const endpoint = item.entryType === 'income' ? '/api/auth/delete-income' : '/api/auth/delete-expense';
+            await axios.delete(`${endpoint}/${id}`);
+            fetchAndRenderEntries();
+          } catch (err) {
+            alert('Delete failed: ' + (err.response?.data?.error || 'Unknown error'));
+          }
+        });
+
+        actions.appendChild(editBtn);
+        actions.appendChild(delBtn);
+        right.appendChild(amt);
+        right.appendChild(actions);
+
+        row.appendChild(left);
+        row.appendChild(right);
+        li.appendChild(row);
+        list.appendChild(li);
+      });
+    }
+
+    // Filter items by category (daily/monthly/yearly)
+    function filterByCategory(items) {
+      const now = new Date();
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      
+      return items.filter(item => {
+        const itemDate = new Date(item.createdAt);
+        
+        switch(currentCategory) {
+          case 'daily':
+            const itemDay = new Date(itemDate.getFullYear(), itemDate.getMonth(), itemDate.getDate());
+            return itemDay.getTime() === today.getTime();
+          case 'monthly':
+            return itemDate.getFullYear() === now.getFullYear() && 
+                   itemDate.getMonth() === now.getMonth();
+          case 'yearly':
+            return itemDate.getFullYear() === now.getFullYear();
+          default:
+            return true;
+        }
+      });
+    }
+
+    // Edit entry
+    function editEntry(item) {
+      const newAmount = prompt('Enter new amount:', item.amount);
+      if (newAmount === null) return;
+      
+      const newDescription = prompt('Enter new description:', item.description);
+      if (newDescription === null) return;
+
+      const endpoint = item.entryType === 'income' ? '/api/auth/update-income' : '/api/auth/update-expense';
+      
+      axios.put(`${endpoint}/${item.id}`, {
+        amount: parseFloat(newAmount),
+        description: newDescription
+      }).then(() => {
+        fetchAndRenderEntries();
+      }).catch(err => {
+        alert('Update failed: ' + (err.response?.data?.error || 'Unknown error'));
+      });
+    }
+
+    // Download expenses as file (Premium feature)
+    async function downloadExpenses() {
+      if (!isPremiumUser) {
+        alert('Buy premium membership to download expenses.');
+        return;
+      }
+
+      try {
+        const token = getToken();
+        
+        // Get all expenses
+        const expenseRes = await axios.get('/api/auth/get-expenses');
+        const incomeRes = await axios.get('/api/auth/get-incomes');
+        
+        const expenses = expenseRes.data || [];
+        const incomes = incomeRes.data || [];
+
+        // Create CSV content
+        let csvContent = 'Type,Amount,Description,Category,Date\n';
+        
+        expenses.forEach(e => {
+          csvContent += `Expense,${e.amount},"${e.description || ''}","${e.category || ''}","${new Date(e.createdAt).toLocaleString()}"\n`;
+        });
+        
+        incomes.forEach(i => {
+          csvContent += `Income,${i.amount},"${i.description || ''}","${i.category || ''}","${new Date(i.createdAt).toLocaleString()}"\n`;
+        });
+
+        // Calculate totals
+        const totalExpense = expenses.reduce((sum, e) => sum + parseFloat(e.amount || 0), 0);
+        const totalIncome = incomes.reduce((sum, i) => sum + parseFloat(i.amount || 0), 0);
+        
+        csvContent += `\n\nSummary\n`;
+        csvContent += `Total Expenses,${totalExpense.toFixed(2)}\n`;
+        csvContent += `Total Income,${totalIncome.toFixed(2)}\n`;
+        csvContent += `Balance,${(totalIncome - totalExpense).toFixed(2)}\n`;
+
+        // Download file
+        const blob = new Blob([csvContent], { type: 'text/csv' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `expense-report-${formatDate(new Date())}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+
+        console.log('✅ Expenses downloaded successfully');
+      } catch (err) {
+        console.error('Download error:', err);
+        alert('Failed to download expenses');
+      }
+    }
+
+    // Show leaderboard
+    async function showLeaderboard() {
+      try {
+        const res = await axios.get('/api/auth/leaderboard');
+        const leaderboard = res.data;
+        
+        const list = document.getElementById('leaderboardList');
+        list.innerHTML = '';
+        
+        if (leaderboard.length === 0) {
+          list.innerHTML = '<p>No expenses found.</p>';
+        } else {
+          const ul = document.createElement('ul');
+          ul.style.listStyle = 'none';
+          ul.style.padding = '0';
+          
+          leaderboard.forEach((user, index) => {
+            const li = document.createElement('li');
+            li.style.padding = '10px';
+            li.style.borderBottom = '1px solid #eee';
+            li.innerHTML = `<strong>${index + 1}. ${user.name}</strong> - $${parseFloat(user.totalExpense).toFixed(2)}`;
+            ul.appendChild(li);
+          });
+          
+          list.appendChild(ul);
+        }
+        
+        document.getElementById('leaderboardModal').style.display = 'flex';
+      } catch (err) {
+        console.error('Error fetching leaderboard:', err);
+        alert('Error loading leaderboard. Please try again.');
+      }
+    }
+
+    // Close modal
+    function closeModal() {
+      document.getElementById('leaderboardModal').style.display = 'none';
+    }
 
     // Navigate to payment options
     function goToPremium() {
       window.location.href = '/payment-options';
     }
 
-    // Check premium status on page load
+    // Initialize on page load
     window.addEventListener('load', () => {
-      setTimeout(checkPremiumStatus, 500);
+      setTimeout(() => {
+        if (checkAuth()) {
+          checkPremiumStatus();
+          setDateRangeFromFilter('daily');
+          fetchAndRenderEntries();
+        }
+      }, 100);
     });
+
+    // Form submission handler
+    document.addEventListener('DOMContentLoaded', function() {
+      const expenseForm = document.getElementById('expenseForm');
+      if (expenseForm) {
+        expenseForm.addEventListener('submit', async function(e) {
+          e.preventDefault();
+          
+          if (!checkAuth()) return;
+          
+          const amountEl = document.getElementById('amount');
+          const descriptionEl = document.getElementById('description');
+          const categoryEl = document.getElementById('category');
+          const entryTypeEl = document.getElementById('entryType');
+
+          const amount = parseFloat(amountEl.value.trim());
+          const description = descriptionEl.value.trim();
+          const category = categoryEl.value.trim() || 'Uncategorized';
+          const entryType = entryTypeEl.value;
+          
+          if (!amount || !description || amount <= 0) {
+            alert('Please enter valid amount (>0) and description');
+            return;
+          }
+
+          try {
+            const endpoint = entryType === 'income' ? '/api/auth/add-income' : '/api/auth/add-expense';
+            await axios.post(endpoint, { 
+              amount, 
+              description, 
+              category,
+              entryType,
+              status: 'completed' 
+            });
+            
+            expenseForm.reset();
+            fetchAndRenderEntries();
+            alert('Entry added successfully!');
+          } catch (err) {
+            alert(err.response?.data?.error || 'Failed to add entry');
+          }
+        });
+      }
+
+      // AI Category Suggestion
+      let aiSuggestionTimeout;
+      const descriptionEl = document.getElementById('description');
+      const categoryEl = document.getElementById('category');
+      if (descriptionEl && categoryEl) {
+        descriptionEl.addEventListener('input', async () => {
+          const desc = descriptionEl.value.trim();
+          if (desc.length < 3) return;
+
+          clearTimeout(aiSuggestionTimeout);
+          aiSuggestionTimeout = setTimeout(async () => {
+            try {
+              const res = await axios.get(`/api/auth/suggest-category?description=${encodeURIComponent(desc)}`);
+              const { suggestedCategory } = res.data;
+              if (suggestedCategory) {
+                categoryEl.value = suggestedCategory;
+                showAISuggestion(suggestedCategory);
+              }
+            } catch (err) {
+              console.error("AI Suggestion Error", err);
+            }
+          }, 500);
+        });
+      }
+    });
+
+    // Handle leaderboard button click
+    function handleLeaderboard() {
+      const leaderboardBtn = document.getElementById('leaderboardBtn');
+      if (leaderboardBtn.classList.contains('locked')) {
+        alert('Buy premium membership to access the leaderboard.');
+      } else {
+        showLeaderboard();
+      }
+    }
+
+    async function handleInsights() {
+      if (!checkAuth()) return;
+      try {
+        const res = await axios.get('/api/auth/insights');
+        showInsightsModal(res.data.insights);
+      } catch (err) {
+        alert(err.response?.data?.error || 'Insights failed');
+      }
+    }
+
+    function showInsightsModal(insights) {
+      const modal = document.createElement('div');
+      modal.innerHTML = `
+        <div class="modal" style="display:flex;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:1000;justify-content:center;align-items:center;">
+          <div style="background:white;padding:20px;border-radius:8px;max-width:90%;max-height:70%;overflow:auto;">
+            <h3>🧠 AI Spending Insights</h3>
+            <pre style="white-space:pre-wrap;font-family:inherit;">${insights}</pre>
+            <button onclick="this.closest('.modal').remove()" style="margin-top:20px;padding:10px;background:#635BFF;color:white;border:none;border-radius:5px;cursor:pointer;">Close</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal.firstElementChild);
+    }
   </script>
 </body>
 </html>
