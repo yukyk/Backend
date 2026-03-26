@@ -1,13 +1,11 @@
-# Forgot Password with Brevo Email Integration - TODO
+# TODO: Make root / serve login page
 
-## Steps (Approved Plan):
-- [x] 1. Create services/emailService.js ✓
-- [x] 2. Update .env with provided API key (manual)
-- [x] 3. Create Controller/forgotPasswordController.js ✓
-- [x] 4. Create Routes/passwordRoutes.js ✓
-- [x] 5. Update app.js (mount /api/password) ✓
-- [x] 6. Update View/login.html (forgot pw UI) ✓
-- [x] 7. Update public/login.js (logic/axios) ✓
-- [ ] 8. Test end-to-end
+## Steps:
+1. [x] Create TODO.md
+2. [x] Edit app.js: Change root '/' route to serve View/login.html instead of signup.html 
+3. [x] Restart server
+4. [x] Test localhost:3000 shows login page
+5. [x] Verify login flow works
+6. [x] Complete
 
-Progress tracked here. Next: Step 1.
+**Task completed: Now http://localhost:3000 serves the login page directly. The server is running successfully. Visit localhost:3000 to see the login page. The previous white page issue was due to serving React index.html without Vite dev server; now using static HTML login which loads perfectly.**

@@ -64,53 +64,6 @@ const resendTimer = document.getElementById('resendTimer');
 
 let countdownInterval = null;
 
-// Cookie utility functions
-function setCookie(name, value, days) {
-    let expires = "";
-    if (days) {
-        const date = new Date();
-        date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
-        expires = "; expires=" + date.toUTCString();
-    }
-    document.cookie = name + "=" + (value || "") + expires + "; path=/";
-}
-
-function getCookie(name) {
-    const nameEQ = name + "=";
-    const ca = document.cookie.split(';');
-    for (let i = 0; i < ca.length; i++) {
-        let c = ca[i];
-        while (c.charAt(0) === ' ') c = c.substring(1, c.length);
-        if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
-    }
-    return null;
-}
-
-function deleteCookie(name) {
-    document.cookie = name + '=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-}
-
-// Check for existing session on page load
-function checkExistingSession() {
-    const token = getCookie('token');
-    const userEmail = getCookie('userEmail');
-    
-    if (token && userEmail) {
-        console.log('✅ Found existing session cookie');
-        // Verify token is still valid
-        localStorage.setItem('token', token);
-        // Redirect to expense page
-        window.location.href = "/expense";
-        return true;
-    }
-    return false;
-}
-
-// Initialize - check for existing session
-document.addEventListener('DOMContentLoaded', function() {
-    checkExistingSession();
-});
-
 if (showForgotPw) {
   showForgotPw.addEventListener('click', () => {
     loginForm.style.display = 'none';
@@ -264,10 +217,9 @@ document.getElementById("loginForm").addEventListener("submit", async (e) => {
 
     const email = document.getElementById("email").value.trim();
     const password = document.getElementById("password").value.trim();
-    const rememberMe = document.getElementById("rememberMe")?.checked || false;
 
     try {
-        console.log('🔐 Attempting login with email:', email, '| Remember Me:', rememberMe);
+        console.log('🔐 Attempting login with email:', email);
         
         const res = await fetch("/api/auth/login", {
             method: "POST",
@@ -282,25 +234,6 @@ document.getElementById("loginForm").addEventListener("submit", async (e) => {
             if (data.token) {
                 localStorage.setItem('token', data.token);
                 console.log('✅ JWT token saved to localStorage');
-                console.log('✅ Token length:', data.token.length);
-                console.log('✅ Token preview:', data.token.substring(0, 50) + '...');
-                
-                // If "Remember Me" is checked, store in cookie for 7 days
-                if (rememberMe) {
-                    setCookie('token', data.token, 7);
-                    setCookie('userEmail', email, 7);
-                    console.log('✅ Session saved to cookie for 7 days');
-                } else {
-                    // Clear any existing cookies if remember me is not checked
-                    deleteCookie('token');
-                    deleteCookie('userEmail');
-                }
-                
-                // Verify token was saved
-                const savedToken = localStorage.getItem('token');
-                console.log('✅ Token verification - saved:', savedToken ? 'YES' : 'NO');
-            } else {
-                console.warn('⚠️ No token in response');
             }
             showToast('User login successful!', 'success');
             // Redirect to expense page

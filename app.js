@@ -38,6 +38,7 @@ app.use("/api/payment", paymentRoutes);
 app.use("/api/password", passwordRoutes);
 
 app.use(express.static(path.join(__dirname, "public")));
+app.use('/tracker', express.static(path.join(__dirname, "public", "dist")));
 app.use(express.static(path.join(__dirname, "View")));
 
 app.get("/signup", (req, res) => {
@@ -45,8 +46,9 @@ app.get("/signup", (req, res) => {
 });
 
 app.get("/", (req, res) => {
-    res.sendFile(path.join(__dirname, "View", "login.html"));
+    res.sendFile(path.join(__dirname, "View", "signup.html"));
 });
+
 app.get("/expense", (req, res) => {
     res.sendFile(path.join(__dirname, "View", "expense.html"));
 });
@@ -61,6 +63,11 @@ app.get("/reset-password", (req, res) => {
 
 app.get("/login", (req, res) => {
     res.sendFile(path.join(__dirname, "View", "login.html"));
+});
+
+// React expense tracker route
+app.get("/tracker", (req, res) => {
+    res.sendFile(path.join(__dirname, "public", "dist", "index.html"));
 });
 
 // Password reset page with UUID in path

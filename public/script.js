@@ -86,7 +86,7 @@ function logout() {
     localStorage.removeItem('token');
     deleteCookie('token');
     deleteCookie('userEmail');
-    window.location.href = '/';
+    window.location.href = '/login';
 }
 
 // Get JWT token from localStorage
@@ -101,7 +101,7 @@ function checkAuth() {
   const token = getToken();
   if (!token) {
     showToast('Not authenticated. Please login first.', 'warning');
-    window.location.href = '/';
+    window.location.href = '/login';
     return false;
   }
   return true;

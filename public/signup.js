@@ -91,7 +91,7 @@ document.addEventListener("DOMContentLoaded", () => {
       showToast('Signup successful! Redirecting...', 'success');
       form.reset();
       setTimeout(() => {
-        window.location.href = '/';
+        window.location.href = '/login';
       }, 1500);
 
     } catch (err) {
