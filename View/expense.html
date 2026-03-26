@@ -621,6 +621,15 @@
         <h2 class="expense-section-title" id="listTitle">
           📅 Today's Expenses
         </h2>
+        <div style="display: flex; justify-content: flex-end; align-items: center; gap: 10px; margin-bottom: 15px;">
+          <label for="itemsPerPage" style="font-weight: 600; color: #6b7385;">Show:</label>
+          <select id="itemsPerPage" onchange="changeItemsPerPage()" style="padding: 8px 12px; border: 2px solid #e3e8ee; border-radius: 6px; font-size: 14px; cursor: pointer;">
+            <option value="5">5 items</option>
+            <option value="10">10 items</option>
+            <option value="15">15 items</option>
+            <option value="20">20 items</option>
+          </select>
+        </div>
         <ul id="expenseList" style="list-style:none;padding-left:0;"></ul>
         <div class="pagination-controls" id="paginationControls" style="display: flex; justify-content: center; align-items: center; gap: 15px; margin-top: 20px;">
           <button id="prevPageBtn" onclick="prevPage()" style="padding: 10px 20px; background: #635BFF; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 18px;">◀</button>
@@ -652,8 +661,26 @@
     let allExpenses = [];
     let allIncomes = [];
     let currentPage = 1;
-    const itemsPerPage = 5;
+    let itemsPerPage = parseInt(localStorage.getItem('expensesPerPage')) || 5;
     let filteredItemsData = [];
+
+    // Load items per page from localStorage on page load
+    document.addEventListener('DOMContentLoaded', function() {
+      const savedItemsPerPage = localStorage.getItem('expensesPerPage');
+      if (savedItemsPerPage) {
+        itemsPerPage = parseInt(savedItemsPerPage);
+        document.getElementById('itemsPerPage').value = itemsPerPage;
+      }
+    });
+
+    // Change items per page
+    function changeItemsPerPage() {
+      itemsPerPage = parseInt(document.getElementById('itemsPerPage').value);
+      localStorage.setItem('expensesPerPage', itemsPerPage);
+      currentPage = 1;
+      const entries = currentViewType === 'expense' ? allExpenses : allIncomes;
+      renderEntries(entries);
+    }
 
     // Check and update premium status
     async function checkPremiumStatus() {
@@ -917,7 +944,53 @@
       // Update pagination controls
       updatePaginationControls();
 
-      // Get items for current page
+      // Use the reusable render function
+      renderPaginatedItems();
+    }
+
+    // Update pagination controls
+    function updatePaginationControls() {
+      const totalPages = Math.ceil(filteredItemsData.length / itemsPerPage);
+      const paginationControls = document.getElementById('paginationControls');
+      const pageInfo = document.getElementById('pageInfo');
+      const prevBtn = document.getElementById('prevPageBtn');
+      const nextBtn = document.getElementById('nextPageBtn');
+
+      if (totalPages <= 1) {
+        paginationControls.style.display = 'none';
+        return;
+      }
+
+      paginationControls.style.display = 'flex';
+      pageInfo.textContent = `Page ${currentPage} of ${totalPages}`;
+      prevBtn.disabled = currentPage === 1;
+      prevBtn.style.opacity = currentPage === 1 ? '0.5' : '1';
+      nextBtn.disabled = currentPage === totalPages;
+      nextBtn.style.opacity = currentPage === totalPages ? '0.5' : '1';
+    }
+
+    // Next page
+    function nextPage() {
+      const totalPages = Math.ceil(filteredItemsData.length / itemsPerPage);
+      if (currentPage < totalPages) {
+        currentPage++;
+        renderPaginatedItems();
+      }
+    }
+
+    // Previous page
+    function prevPage() {
+      if (currentPage > 1) {
+        currentPage--;
+        renderPaginatedItems();
+      }
+    }
+
+    // Render paginated items (reusable function for pagination)
+    function renderPaginatedItems() {
+      const list = document.getElementById('expenseList');
+      list.innerHTML = '';
+      
       const startIndex = (currentPage - 1) * itemsPerPage;
       const endIndex = startIndex + itemsPerPage;
       const paginatedItems = filteredItemsData.slice(startIndex, endIndex);
@@ -1007,230 +1080,8 @@
         li.appendChild(row);
         list.appendChild(li);
       });
-    }
 
-    // Update pagination controls
-    function updatePaginationControls() {
-      const totalPages = Math.ceil(filteredItemsData.length / itemsPerPage);
-      const paginationControls = document.getElementById('paginationControls');
-      const pageInfo = document.getElementById('pageInfo');
-      const prevBtn = document.getElementById('prevPageBtn');
-      const nextBtn = document.getElementById('nextPageBtn');
-
-      if (totalPages <= 1) {
-        paginationControls.style.display = 'none';
-        return;
-      }
-
-      paginationControls.style.display = 'flex';
-      pageInfo.textContent = `Page ${currentPage} of ${totalPages}`;
-      prevBtn.disabled = currentPage === 1;
-      prevBtn.style.opacity = currentPage === 1 ? '0.5' : '1';
-      nextBtn.disabled = currentPage === totalPages;
-      nextBtn.style.opacity = currentPage === totalPages ? '0.5' : '1';
-    }
-
-    // Next page
-    function nextPage() {
-      const totalPages = Math.ceil(filteredItemsData.length / itemsPerPage);
-      if (currentPage < totalPages) {
-        currentPage++;
-        const list = document.getElementById('expenseList');
-        list.innerHTML = '';
-        
-        const startIndex = (currentPage - 1) * itemsPerPage;
-        const endIndex = startIndex + itemsPerPage;
-        const paginatedItems = filteredItemsData.slice(startIndex, endIndex);
-
-        paginatedItems.forEach(item => {
-          const li = document.createElement('li');
-          li.style.padding = '12px 0';
-          li.style.borderBottom = '1px solid #eef2f6';
-
-          const row = document.createElement('div');
-          row.style.display = 'flex';
-          row.style.justifyContent = 'space-between';
-          row.style.alignItems = 'center';
-          row.style.gap = '12px';
-
-          const left = document.createElement('div');
-
-          const desc = document.createElement('div');
-          desc.textContent = item.description || '';
-          desc.style.fontWeight = '600';
-          desc.style.color = '#1a1f36';
-
-          const meta = document.createElement('div');
-          meta.style.color = '#6b7385';
-          meta.style.fontSize = '13px';
-          const dateStr = item.createdAt ? new Date(item.createdAt).toLocaleString() : '';
-          meta.innerHTML = `${item.category || ''} • ${dateStr}`;
-
-          left.appendChild(desc);
-          left.appendChild(meta);
-
-          const right = document.createElement('div');
-          right.style.textAlign = 'right';
-
-          const amt = document.createElement('div');
-          amt.style.fontWeight = '700';
-          amt.style.color = item.entryType === 'income' ? '#27ae60' : '#635BFF';
-          const value = Number(item.amount || 0).toFixed(2);
-          amt.textContent = (item.entryType === 'income' ? '+$' : '-$') + value;
-
-          const actions = document.createElement('div');
-          actions.style.marginTop = '6px';
-
-          const editBtn = document.createElement('button');
-          editBtn.textContent = 'Edit';
-          editBtn.dataset.id = item.id;
-          editBtn.style.background = '#fff';
-          editBtn.style.border = '1px solid #e3e8ee';
-          editBtn.style.padding = '6px 8px';
-          editBtn.style.borderRadius = '6px';
-          editBtn.style.cursor = 'pointer';
-          editBtn.style.marginRight = '5px';
-
-          editBtn.addEventListener('click', function() {
-            editEntry(item);
-          });
-
-          const delBtn = document.createElement('button');
-          delBtn.textContent = 'Delete';
-          delBtn.dataset.id = item.id;
-          delBtn.style.background = '#fff';
-          delBtn.style.border = '1px solid #e3e8ee';
-          delBtn.style.padding = '6px 8px';
-          delBtn.style.borderRadius = '6px';
-          delBtn.style.cursor = 'pointer';
-
-          delBtn.addEventListener('click', async function() {
-            const id = delBtn.dataset.id;
-            if (!confirm(`Delete entry $${Number(item.amount || 0).toFixed(2)}?`)) return;
-            
-            try {
-              const endpoint = item.entryType === 'income' ? '/api/auth/delete-income' : '/api/auth/delete-expense';
-              await axios.delete(`${endpoint}/${id}`);
-              fetchAndRenderEntries();
-            } catch (err) {
-              alert('Delete failed: ' + (err.response?.data?.error || 'Unknown error'));
-            }
-          });
-
-          actions.appendChild(editBtn);
-          actions.appendChild(delBtn);
-          right.appendChild(amt);
-          right.appendChild(actions);
-
-          row.appendChild(left);
-          row.appendChild(right);
-          li.appendChild(row);
-          list.appendChild(li);
-        });
-
-        updatePaginationControls();
-      }
-    }
-
-    // Previous page
-    function prevPage() {
-      if (currentPage > 1) {
-        currentPage--;
-        const list = document.getElementById('expenseList');
-        list.innerHTML = '';
-        
-        const startIndex = (currentPage - 1) * itemsPerPage;
-        const endIndex = startIndex + itemsPerPage;
-        const paginatedItems = filteredItemsData.slice(startIndex, endIndex);
-
-        paginatedItems.forEach(item => {
-          const li = document.createElement('li');
-          li.style.padding = '12px 0';
-          li.style.borderBottom = '1px solid #eef2f6';
-
-          const row = document.createElement('div');
-          row.style.display = 'flex';
-          row.style.justifyContent = 'space-between';
-          row.style.alignItems = 'center';
-          row.style.gap = '12px';
-
-          const left = document.createElement('div');
-
-          const desc = document.createElement('div');
-          desc.textContent = item.description || '';
-          desc.style.fontWeight = '600';
-          desc.style.color = '#1a1f36';
-
-          const meta = document.createElement('div');
-          meta.style.color = '#6b7385';
-          meta.style.fontSize = '13px';
-          const dateStr = item.createdAt ? new Date(item.createdAt).toLocaleString() : '';
-          meta.innerHTML = `${item.category || ''} • ${dateStr}`;
-
-          left.appendChild(desc);
-          left.appendChild(meta);
-
-          const right = document.createElement('div');
-          right.style.textAlign = 'right';
-
-          const amt = document.createElement('div');
-          amt.style.fontWeight = '700';
-          amt.style.color = item.entryType === 'income' ? '#27ae60' : '#635BFF';
-          const value = Number(item.amount || 0).toFixed(2);
-          amt.textContent = (item.entryType === 'income' ? '+$' : '-$') + value;
-
-          const actions = document.createElement('div');
-          actions.style.marginTop = '6px';
-
-          const editBtn = document.createElement('button');
-          editBtn.textContent = 'Edit';
-          editBtn.dataset.id = item.id;
-          editBtn.style.background = '#fff';
-          editBtn.style.border = '1px solid #e3e8ee';
-          editBtn.style.padding = '6px 8px';
-          editBtn.style.borderRadius = '6px';
-          editBtn.style.cursor = 'pointer';
-          editBtn.style.marginRight = '5px';
-
-          editBtn.addEventListener('click', function() {
-            editEntry(item);
-          });
-
-          const delBtn = document.createElement('button');
-          delBtn.textContent = 'Delete';
-          delBtn.dataset.id = item.id;
-          delBtn.style.background = '#fff';
-          delBtn.style.border = '1px solid #e3e8ee';
-          delBtn.style.padding = '6px 8px';
-          delBtn.style.borderRadius = '6px';
-          delBtn.style.cursor = 'pointer';
-
-          delBtn.addEventListener('click', async function() {
-            const id = delBtn.dataset.id;
-            if (!confirm(`Delete entry $${Number(item.amount || 0).toFixed(2)}?`)) return;
-            
-            try {
-              const endpoint = item.entryType === 'income' ? '/api/auth/delete-income' : '/api/auth/delete-expense';
-              await axios.delete(`${endpoint}/${id}`);
-              fetchAndRenderEntries();
-            } catch (err) {
-              alert('Delete failed: ' + (err.response?.data?.error || 'Unknown error'));
-            }
-          });
-
-          actions.appendChild(editBtn);
-          actions.appendChild(delBtn);
-          right.appendChild(amt);
-          right.appendChild(actions);
-
-          row.appendChild(left);
-          row.appendChild(right);
-          li.appendChild(row);
-          list.appendChild(li);
-        });
-
-        updatePaginationControls();
-      }
+      updatePaginationControls();
     }
 
     // Filter items by category (daily/monthly/yearly)
