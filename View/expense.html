@@ -101,6 +101,128 @@
       box-shadow: 0 5px 15px rgba(231, 76, 60, 0.3);
     }
 
+    /* Inline Edit Styles - Enhanced for better visibility */
+    .inline-edit-input {
+      transition: all 0.3s ease;
+      font-size: 14px;
+    }
+    
+    .inline-edit-input:focus {
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(99, 91, 255, 0.3);
+      border-color: #635BFF !important;
+    }
+
+    .editing-row {
+      background: linear-gradient(90deg, rgba(99, 91, 255, 0.08) 0%, rgba(99, 91, 255, 0.03) 100%);
+      border-radius: 12px;
+      padding: 16px !important;
+      border: 2px solid rgba(99, 91, 255, 0.3);
+      box-shadow: 0 4px 12px rgba(99, 91, 255, 0.1);
+    }
+
+    /* Edit input bar container */
+    .edit-input-container {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      width: 100%;
+      padding: 10px;
+      background: rgba(255, 255, 255, 0.9);
+      border-radius: 8px;
+      border: 1px solid #e3e8ee;
+    }
+
+    .edit-input-row {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .edit-input-group {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .edit-input-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: #6b7385;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .inline-edit-input {
+      width: 100%;
+      padding: 10px 14px;
+      border: 2px solid #e3e8ee;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 500;
+      color: #1a1f36;
+      background: white;
+    }
+
+    .inline-edit-input.inline-edit-amount {
+      width: 120px;
+      text-align: right;
+    }
+
+    .edit-actions-container {
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+      margin-top: 4px;
+    }
+
+    .edit-save-btn {
+      background: linear-gradient(135deg, #27ae60, #219a52) !important;
+      color: white !important;
+      border: none !important;
+      padding: 10px 20px !important;
+      border-radius: 8px !important;
+      cursor: pointer !important;
+      font-weight: 600 !important;
+      font-size: 14px !important;
+      transition: all 0.2s ease !important;
+      box-shadow: 0 2px 8px rgba(39, 174, 96, 0.3) !important;
+    }
+
+    .edit-save-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(39, 174, 96, 0.4) !important;
+    }
+
+    .edit-cancel-btn {
+      background: linear-gradient(135deg, #e74c3c, #c0392b) !important;
+      color: white !important;
+      border: none !important;
+      padding: 10px 20px !important;
+      border-radius: 8px !important;
+      cursor: pointer !important;
+      font-weight: 600 !important;
+      font-size: 14px !important;
+      transition: all 0.2s ease !important;
+      box-shadow: 0 2px 8px rgba(231, 76, 60, 0.3) !important;
+    }
+
+    .edit-cancel-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(231, 76, 60, 0.4) !important;
+    }
+
+    .amount.animate-pulse {
+      animation: pulse 0.3s ease-in-out;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.15); }
+      100% { transform: scale(1); }
+    }
+
     /* Category Tabs */
     .category-tabs {
       display: flex;
@@ -999,43 +1121,49 @@
         const li = document.createElement('li');
         li.style.padding = '12px 0';
         li.style.borderBottom = '1px solid #eef2f6';
-
+        li.dataset.editId = item.id; // Add data attribute for inline editing
+ 
         const row = document.createElement('div');
         row.style.display = 'flex';
         row.style.justifyContent = 'space-between';
         row.style.alignItems = 'center';
         row.style.gap = '12px';
-
+ 
         const left = document.createElement('div');
-
+        left.className = 'left-section';
+ 
         const desc = document.createElement('div');
+        desc.className = 'desc-text';
         desc.textContent = item.description || '';
         desc.style.fontWeight = '600';
         desc.style.color = '#1a1f36';
-
+ 
         const meta = document.createElement('div');
+        meta.className = 'meta-text';
         meta.style.color = '#6b7385';
         meta.style.fontSize = '13px';
         const dateStr = item.createdAt ? new Date(item.createdAt).toLocaleString() : '';
         meta.innerHTML = `${item.category || ''} • ${dateStr}`;
-
+ 
         left.appendChild(desc);
         left.appendChild(meta);
-
+ 
         const right = document.createElement('div');
         right.style.textAlign = 'right';
-
+ 
         const amt = document.createElement('div');
+        amt.className = 'amt-text';
         amt.style.fontWeight = '700';
         amt.style.color = item.entryType === 'income' ? '#27ae60' : '#635BFF';
         const value = Number(item.amount || 0).toFixed(2);
         amt.textContent = (item.entryType === 'income' ? '+$' : '-$') + value;
-
+ 
         const actions = document.createElement('div');
+        actions.className = 'actions-container';
         actions.style.marginTop = '6px';
-
+ 
         const editBtn = document.createElement('button');
-        editBtn.textContent = 'Edit';
+        editBtn.textContent = '✏️ Edit';
         editBtn.dataset.id = item.id;
         editBtn.style.background = '#fff';
         editBtn.style.border = '1px solid #e3e8ee';
@@ -1043,20 +1171,20 @@
         editBtn.style.borderRadius = '6px';
         editBtn.style.cursor = 'pointer';
         editBtn.style.marginRight = '5px';
-
+ 
         editBtn.addEventListener('click', function() {
-          editEntry(item);
+          startInlineEdit(item, li);
         });
-
+ 
         const delBtn = document.createElement('button');
-        delBtn.textContent = 'Delete';
+        delBtn.textContent = '🗑️ Delete';
         delBtn.dataset.id = item.id;
         delBtn.style.background = '#fff';
         delBtn.style.border = '1px solid #e3e8ee';
         delBtn.style.padding = '6px 8px';
         delBtn.style.borderRadius = '6px';
         delBtn.style.cursor = 'pointer';
-
+ 
         delBtn.addEventListener('click', async function() {
           const id = delBtn.dataset.id;
           if (!confirm(`Delete entry $${Number(item.amount || 0).toFixed(2)}?`)) return;
@@ -1064,12 +1192,24 @@
           try {
             const endpoint = item.entryType === 'income' ? '/api/auth/delete-income' : '/api/auth/delete-expense';
             await axios.delete(`${endpoint}/${id}`);
+            
+            // Update totals immediately
+            const deletedAmount = parseFloat(item.amount || 0);
+            updateTotalsFromChange(item.entryType, deletedAmount, 0);
+            
+            // Remove from local data
+            if (item.entryType === 'income') {
+              allIncomes = allIncomes.filter(i => i.id !== id);
+            } else {
+              allExpenses = allExpenses.filter(e => e.id !== id);
+            }
+            
             fetchAndRenderEntries();
           } catch (err) {
             alert('Delete failed: ' + (err.response?.data?.error || 'Unknown error'));
           }
         });
-
+ 
         actions.appendChild(editBtn);
         actions.appendChild(delBtn);
         right.appendChild(amt);
@@ -1107,25 +1247,357 @@
       });
     }
 
-    // Edit entry
-    function editEntry(item) {
-      const newAmount = prompt('Enter new amount:', item.amount);
-      if (newAmount === null) return;
+    // Inline edit state tracking
+    let currentlyEditingId = null;
+    let originalAmount = 0;
+    let originalDescription = '';
+
+    // Inline Edit entry - converts row to editable mode with prominent input bar
+    function startInlineEdit(item, rowElement) {
+      // Cancel any existing edit first
+      if (currentlyEditingId) {
+        cancelInlineEdit();
+      }
       
-      const newDescription = prompt('Enter new description:', item.description);
-      if (newDescription === null) return;
+      currentlyEditingId = item.id;
+      originalAmount = parseFloat(item.amount || 0);
+      originalDescription = item.description || '';
+
+      // Add editing class for visual feedback
+      rowElement.classList.add('editing-row');
+
+      // Find the left and right sections
+      const left = rowElement.querySelector('.left-section');
+      const right = rowElement.querySelector('.right-section');
+      
+      if (!left || !right) return;
+
+      // Create a prominent edit input container
+      const editContainer = document.createElement('div');
+      editContainer.className = 'edit-input-container';
+      
+      // Create the input row with labels
+      const inputRow = document.createElement('div');
+      inputRow.className = 'edit-input-row';
+      
+      // Description input group
+      const descGroup = document.createElement('div');
+      descGroup.className = 'edit-input-group';
+      
+      const descLabel = document.createElement('label');
+      descLabel.className = 'edit-input-label';
+      descLabel.textContent = 'Description';
+      
+      const descInput = document.createElement('input');
+      descInput.type = 'text';
+      descInput.value = originalDescription;
+      descInput.className = 'inline-edit-input inline-edit-desc';
+      descInput.placeholder = 'Enter description...';
+      
+      descGroup.appendChild(descLabel);
+      descGroup.appendChild(descInput);
+      
+      // Amount input group
+      const amtGroup = document.createElement('div');
+      amtGroup.className = 'edit-input-group';
+      
+      const amtLabel = document.createElement('label');
+      amtLabel.className = 'edit-input-label';
+      amtLabel.textContent = 'Amount';
+      
+      const amtInput = document.createElement('input');
+      amtInput.type = 'number';
+      amtInput.step = '0.01';
+      amtInput.value = originalAmount;
+      amtInput.className = 'inline-edit-input inline-edit-amount';
+      amtInput.placeholder = '0.00';
+      
+      amtGroup.appendChild(amtLabel);
+      amtGroup.appendChild(amtInput);
+      
+      inputRow.appendChild(descGroup);
+      inputRow.appendChild(amtGroup);
+      
+      // Action buttons container
+      const actionsContainer = document.createElement('div');
+      actionsContainer.className = 'edit-actions-container';
+      
+      const saveBtn = document.createElement('button');
+      saveBtn.textContent = '💾 Save';
+      saveBtn.className = 'edit-save-btn';
+      saveBtn.addEventListener('click', function() {
+        saveInlineEdit(item, rowElement);
+      });
+
+      const cancelBtn = document.createElement('button');
+      cancelBtn.textContent = '✖ Cancel';
+      cancelBtn.className = 'edit-cancel-btn';
+      cancelBtn.addEventListener('click', cancelInlineEdit);
+
+      actionsContainer.appendChild(saveBtn);
+      actionsContainer.appendChild(cancelBtn);
+      
+      // Assemble the edit container
+      editContainer.appendChild(inputRow);
+      editContainer.appendChild(actionsContainer);
+      
+      // Clear existing content and show the edit bar
+      rowElement.innerHTML = '';
+      rowElement.appendChild(editContainer);
+      
+      // Focus the description input
+      descInput.focus();
+      descInput.select();
+    }
+
+    // Save inline edit
+    function saveInlineEdit(item, rowElement) {
+      const descInput = rowElement.querySelector('.inline-edit-desc');
+      const amtInput = rowElement.querySelector('.inline-edit-amount');
+      
+      if (!descInput || !amtInput) return;
+
+      const newAmount = parseFloat(amtInput.value);
+      const newDescription = descInput.value.trim();
+
+      if (isNaN(newAmount) || newAmount < 0) {
+        showToast('Please enter a valid amount', 'error');
+        return;
+      }
+
+      if (!newDescription) {
+        showToast('Please enter a description', 'error');
+        return;
+      }
 
       const endpoint = item.entryType === 'income' ? '/api/auth/update-income' : '/api/auth/update-expense';
       
       axios.put(`${endpoint}/${item.id}`, {
-        amount: parseFloat(newAmount),
+        amount: newAmount,
         description: newDescription
       }).then(() => {
-        fetchAndRenderEntries();
+        // Update local data without full refresh
+        const oldAmount = parseFloat(item.amount || 0);
+        item.amount = newAmount;
+        item.description = newDescription;
+
+        // Update totals in real-time
+        updateTotalsFromChange(item.entryType, oldAmount, newAmount);
+
+        // Restore view mode with new values
+        restoreRowView(rowElement, item);
+
+        currentlyEditingId = null;
+        showToast('✅ Entry updated successfully!', 'success');
       }).catch(err => {
-        alert('Update failed: ' + (err.response?.data?.error || 'Unknown error'));
+        showToast('Update failed: ' + (err.response?.data?.error || 'Unknown error'), 'error');
+        cancelInlineEdit();
       });
     }
+
+    // Cancel inline edit and restore original values
+    function cancelInlineEdit() {
+      if (!currentlyEditingId) return;
+
+      // Find the row being edited
+      const editRow = document.querySelector(`[data-edit-id="${currentlyEditingId}"]`);
+      if (editRow) {
+        const item = currentViewType === 'expense' 
+          ? allExpenses.find(e => e.id === currentlyEditingId)
+          : allIncomes.find(i => i.id === currentlyEditingId);
+        if (item) {
+          // Just restore the view without making changes
+          restoreRowView(editRow, item);
+        }
+      }
+
+      currentlyEditingId = null;
+    }
+
+    // Restore row to view mode (rebuild the entire row content)
+    function restoreRowView(rowElement, item) {
+      // Remove editing class
+      rowElement.classList.remove('editing-row');
+      
+      // Clear the row
+      rowElement.innerHTML = '';
+      
+      // Create a row wrapper
+      const row = document.createElement('div');
+      row.style.display = 'flex';
+      row.style.justifyContent = 'space-between';
+      row.style.alignItems = 'center';
+      row.style.gap = '12px';
+      
+      // Left section
+      const left = document.createElement('div');
+      left.className = 'left-section';
+      
+      const desc = document.createElement('div');
+      desc.className = 'desc-text';
+      desc.textContent = item.description || '';
+      desc.style.fontWeight = '600';
+      desc.style.color = '#1a1f36';
+      
+      const meta = document.createElement('div');
+      meta.className = 'meta-text';
+      meta.style.color = '#6b7385';
+      meta.style.fontSize = '13px';
+      const dateStr = item.createdAt ? new Date(item.createdAt).toLocaleString() : '';
+      meta.innerHTML = `${item.category || ''} • ${dateStr}`;
+      
+      left.appendChild(desc);
+      left.appendChild(meta);
+      
+      // Right section
+      const right = document.createElement('div');
+      right.className = 'right-section';
+      right.style.textAlign = 'right';
+      
+      const amt = document.createElement('div');
+      amt.className = 'amt-text';
+      amt.style.fontWeight = '700';
+      amt.style.color = item.entryType === 'income' ? '#27ae60' : '#635BFF';
+      const value = Number(item.amount || 0).toFixed(2);
+      amt.textContent = (item.entryType === 'income' ? '+$' : '-$') + value;
+      
+      const actions = document.createElement('div');
+      actions.className = 'actions-container';
+      actions.style.marginTop = '6px';
+      
+      const editBtn = document.createElement('button');
+      editBtn.textContent = '✏️ Edit';
+      editBtn.style.cssText = 'background: #fff; border: 1px solid #e3e8ee; padding: 6px 8px; border-radius: 6px; cursor: pointer; margin-right: 5px;';
+      editBtn.addEventListener('click', function() {
+        startInlineEdit(item, rowElement);
+      });
+
+      const delBtn = document.createElement('button');
+      delBtn.textContent = '🗑️ Delete';
+      delBtn.style.cssText = 'background: #fff; border: 1px solid #e3e8ee; padding: 6px 8px; border-radius: 6px; cursor: pointer;';
+      delBtn.addEventListener('click', async function() {
+        if (!confirm(`Delete entry $${Number(item.amount || 0).toFixed(2)}?`)) return;
+        
+        try {
+          const endpoint = item.entryType === 'income' ? '/api/auth/delete-income' : '/api/auth/delete-expense';
+          await axios.delete(`${endpoint}/${item.id}`);
+          
+          // Update totals immediately
+          const deletedAmount = parseFloat(item.amount || 0);
+          updateTotalsFromChange(item.entryType, deletedAmount, 0);
+          
+          // Remove from local data
+          if (item.entryType === 'income') {
+            allIncomes = allIncomes.filter(i => i.id !== item.id);
+          } else {
+            allExpenses = allExpenses.filter(e => e.id !== item.id);
+          }
+          
+          fetchAndRenderEntries();
+        } catch (err) {
+          showToast('Delete failed: ' + (err.response?.data?.error || 'Unknown error'), 'error');
+        }
+      });
+
+      actions.appendChild(editBtn);
+      actions.appendChild(delBtn);
+      
+      right.appendChild(amt);
+      right.appendChild(actions);
+      
+      row.appendChild(left);
+      row.appendChild(right);
+      rowElement.appendChild(row);
+    }
+
+    // Update totals in real-time without full refresh
+    function updateTotalsFromChange(entryType, oldAmount, newAmount) {
+      let totalExpense = 0;
+      let totalIncome = 0;
+
+      allExpenses.forEach(e => {
+        if (e.id === currentlyEditingId) {
+          totalExpense += newAmount;
+        } else {
+          totalExpense += parseFloat(e.amount || 0);
+        }
+      });
+
+      allIncomes.forEach(i => {
+        if (i.id === currentlyEditingId) {
+          totalIncome += newAmount;
+        } else {
+          totalIncome += parseFloat(i.amount || 0);
+        }
+      });
+
+      const balance = totalIncome - totalExpense;
+
+      // Animate the totals update
+      animateTotalUpdate('totalExpenses', totalExpense);
+      animateTotalUpdate('totalIncome', totalIncome);
+      animateTotalUpdate('balance', balance);
+
+      // Update profit/loss indicator
+      const indicator = document.getElementById('profitLossIndicator');
+      if (indicator) {
+        if (balance > 0) {
+          indicator.textContent = '📈 Profit';
+          indicator.style.color = '#27ae60';
+        } else if (balance < 0) {
+          indicator.textContent = '📉 Loss';
+          indicator.style.color = '#e74c3c';
+        } else {
+          indicator.textContent = '⚖️ Break Even';
+          indicator.style.color = '#f39c12';
+        }
+      }
+    }
+
+    // Animate total value change
+    function animateTotalUpdate(elementId, newValue) {
+      const element = document.getElementById(elementId);
+      if (!element) return;
+      
+      element.style.transition = 'transform 0.3s ease, color 0.3s ease';
+      element.style.transform = 'scale(1.2)';
+      element.textContent = '$' + newValue.toFixed(2);
+      
+      setTimeout(() => {
+        element.style.transform = 'scale(1)';
+      }, 150);
+    }
+
+    // Legacy editEntry function for backwards compatibility
+    function editEntry(item) {
+      const rowElement = document.querySelector(`[data-edit-id="${item.id}"]`);
+      if (rowElement) {
+        startInlineEdit(item, rowElement);
+      }
+    }
+
+    // Add keyboard event listener for inline editing
+    document.addEventListener('keydown', function(e) {
+      if (currentlyEditingId) {
+        if (e.key === 'Escape') {
+          cancelInlineEdit();
+        } else if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          const editRow = document.querySelector(`[data-edit-id="${currentlyEditingId}"]`);
+          if (editRow) {
+            const item = currentViewType === 'expense' 
+              ? allExpenses.find(ex => ex.id === currentlyEditingId)
+              : allIncomes.find(income => income.id === currentlyEditingId);
+            if (item) {
+              saveInlineEdit(item, editRow);
+            }
+          }
+        }
+      }
+    });
+    
+    // Make startInlineEdit globally accessible for legacy compatibility
+    window.startInlineEdit = startInlineEdit;
 
     // Download expenses as file (Premium feature)
     async function downloadExpenses() {

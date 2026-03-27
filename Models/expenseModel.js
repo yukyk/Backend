@@ -36,6 +36,11 @@ const Expense = sequelize.define("Expense", {
             key: 'id',
             onDelete: 'CASCADE'
         }
+    },
+    note:{
+        type: DataTypes.STRING,
+        allowNull: true,
+        defaultValue: null
     }
 }, {
     tableName: "expenses",

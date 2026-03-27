@@ -12,9 +12,9 @@ const addExpense = async (req, res) => {
   const t = await sequelize.transaction();
 
   try {
-    let { amount, description, category } = req.body;
+    let { amount, description, category, note } = req.body;
 
-    console.log('📥 Parsed input:', { amount, description, category });
+    console.log('📥 Parsed input:', { amount, description, category, note });
 
     if (!amount || !description) {
       await t.rollback();
@@ -44,7 +44,8 @@ const addExpense = async (req, res) => {
       description,
       category: category || 'Uncategorized',
       status: req.body.status || 'pending',
-      userId: userId
+      userId: userId,
+      note: note || null
     }, { transaction: t });
     
     // 👇 NEW DIAGNOSTIC LOGS
