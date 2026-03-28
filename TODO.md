@@ -1,11 +1,16 @@
-# TODO: Make root / serve login page
+# Deployment Preparation TODO
 
-## Steps:
-1. [x] Create TODO.md
-2. [x] Edit app.js: Change root '/' route to serve View/login.html instead of signup.html 
-3. [x] Restart server
-4. [x] Test localhost:3000 shows login page
-5. [x] Verify login flow works
-6. [x] Complete
+## Plan Progress Tracker
 
-**Task completed: Now http://localhost:3000 serves the login page directly. The server is running successfully. Visit localhost:3000 to see the login page. The previous white page issue was due to serving React index.html without Vite dev server; now using static HTML login which loads perfectly.**
+- [x] 1. Install morgan: `npm install morgan`
+- [x] 2. Update .env - Add all required environment variables (DB, JWT_SECRET, CASHFREE_APP_ID, CASHFREE_APP_SECRET, API_KEY, GOOGLE_AI_API_KEY, PORT, NODE_ENV)
+- [x] 3. Update config/config.json - Use ${DB_USER} etc. interpolation
+- [x] 4. Refactor Utils/util.js - Load config.json dynamically instead of hardcoded DB
+- [x] 5. Update services/cashFreeService.js - Use process.env.CASHFREE_APP_ID & _SECRET
+- [x] 6. Update Controller/signupController.js - Remove JWT_SECRET hardcoded fallback
+- [x] 7. Update app.js - Add morgan('combined', {stream to logs/app.log}), PORT=process.env.PORT||3000, create logs dir
+- [x] 8. Update package.json - Add morgan to dependencies, update start script with NODE_ENV
+- [ ] 9. Test: Create logs/, npm run start, verify logs/app.log created, no console hardcode errors, payments/DB work
+
+**Next:** Execute step 1 after confirming file creation.
+

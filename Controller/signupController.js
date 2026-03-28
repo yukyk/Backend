@@ -3,8 +3,6 @@ const sequelize = require("../Utils/util");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 
-
-
 exports.signup = async (req, res) => {
     const t = await sequelize.transaction();
     try {
@@ -40,7 +38,10 @@ exports.signup = async (req, res) => {
 };
 
 function generateAccessToken(id, isPremium) {
-  const secret = process.env.JWT_SECRET || 'd6d43a64dce88b8870a88bacedb429f6';
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    throw new Error('JWT_SECRET not set in .env');
+  }
   // token contains userId and isPremium
   const token = jwt.sign({ userId: id, isPremium: isPremium }, secret, { expiresIn: '7d' });
   console.log('✅ Token generated for userId:', id, 'isPremium:', isPremium);
@@ -48,7 +49,6 @@ function generateAccessToken(id, isPremium) {
   console.log('✅ Token expiry: 7 days');
   return token;
 }
-
 
 exports.login = async (req, res) => {
     try{

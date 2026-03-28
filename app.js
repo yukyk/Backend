@@ -3,6 +3,8 @@ require("dotenv").config();
 const express = require("express");
 const path = require("path");
 const cors = require("cors");
+const morgan = require('morgan');
+const fs = require('fs');
 
 const authRoutes = require("./Routes/signupRoutes");
 const paymentRoutes = require("./Routes/paymentRoutes");
@@ -16,7 +18,11 @@ const ForgotPasswordRequests = require("./Models/forgotPasswordRequests");
 
 const app = express();
 
+// Log stream
+const logStream = fs.createWriteStream(path.join(__dirname, 'logs/app.log'), { flags: 'a' });
+
 // ✅ Middleware
+app.use(morgan('combined', { stream: logStream }));
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -108,8 +114,9 @@ sequelize.sync({ alter: true }).then(async () => {
 
     await cleanupExcessIndexes();
 
-    app.listen(3000, () => {
-        console.log("Server running at http://localhost:3000");
+    const port = process.env.PORT || 3000;
+    app.listen(port, () => {
+        console.log(`Server running at http://localhost:${port}`);
     });
 }).catch(async (err) => {
     if (err.code === 'ER_TOO_MANY_KEYS' || err.parent?.code === 'ER_TOO_MANY_KEYS') {
@@ -120,8 +127,9 @@ sequelize.sync({ alter: true }).then(async () => {
 
             await cleanupExcessIndexes();
 
-            app.listen(3000, () => {
-                console.log("Server running at http://localhost:3000");
+            const port = process.env.PORT || 3000;
+            app.listen(port, () => {
+                console.log(`Server running at http://localhost:${port}`);
             });
         } catch (retryErr) {
             console.error('Database sync retry failed:', retryErr);

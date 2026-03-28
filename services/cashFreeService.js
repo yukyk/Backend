@@ -3,8 +3,14 @@ const crypto = require('crypto');
 
 console.log('🔵 CashFree Service - Initializing...');
 
-const appId = "TEST430329ae80e0f32e41a393d78b923034";
-const appSecret = "TESTaf195616268bd6202eeb3bf8dc458956e7192a85";
+let appId = process.env.CASHFREE_APP_ID;
+let appSecret = process.env.CASHFREE_APP_SECRET;
+
+if (!appId || !appSecret) {
+  console.warn('CashFree credentials not set, payment features disabled');
+  appId = '';
+  appSecret = '';
+}
 
 const cashfreeAPI = axios.create({
     baseURL: "https://sandbox.cashfree.com",
