@@ -28,6 +28,11 @@ const Order = sequelize.define("Order", {
         type: DataTypes.STRING,
         defaultValue: 'PENDING'
     },
+    premiumTier: {
+        type: DataTypes.INTEGER,
+        defaultValue: 1,
+        comment: '1=basic, 2=plus, 3=elite'
+    },
     paymentSessionId: {
         type: DataTypes.STRING,
         allowNull: true

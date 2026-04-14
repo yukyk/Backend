@@ -36,6 +36,7 @@
     "sequelize-cli": "^6.6.5",
     "sib-api-v3-sdk": "^8.5.0",
     "sqlite3": "^5.1.7",
+    "typescript": "^6.0.2",
     "uuid": "^13.0.0"
   }
 }

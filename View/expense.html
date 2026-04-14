@@ -43,6 +43,21 @@
       box-shadow: 0 5px 15px rgba(99, 91, 255, 0.3);
     }
 
+    .premium-btn.faded {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .premium-btn.faded:hover {
+      transform: none;
+      box-shadow: none;
+    }
+
+    .premium-btn.faded::after {
+      content: "🔒";
+      margin-left: 8px;
+    }
+
     .premium-badge {
       background: #27ae60;
       color: white;
@@ -51,6 +66,103 @@
       font-size: 12px;
       font-weight: 700;
       margin-left: 8px;
+    }
+
+    /* Premium User Background - Override all body styles */
+    html body.premium-user,
+    html body.premium-user,
+    body.premium-user,
+    body.premium-user {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+      background-image: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+      background-color: #667eea !important;
+      background-attachment: fixed !important;
+      min-height: 100vh !important;
+      width: 100% !important;
+      position: relative !important;
+      display: block !important;
+      padding: 20px !important;
+      align-items: flex-start !important;
+      justify-content: flex-start !important;
+    }
+    
+    html.premium-user body,
+    html.premium-user body {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+      background-image: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    }
+    
+    /* Target inline style overrides */
+    body.premium-user[style] {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+      background-image: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    }
+    
+    body.premium-user::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      z-index: -1;
+    }
+    
+    body.premium-user > * {
+      position: relative;
+      z-index: 1;
+    }
+    
+    body.premium-user .login-container {
+      width: 100%;
+      max-width: 950px;
+      margin: 0 auto;
+      padding: 0;
+    }
+    
+    body.premium-user .login-card {
+      background: rgba(255, 255, 255, 0.97) !important;
+      box-shadow: 0 20px 60px rgba(102, 126, 234, 0.4);
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      width: 100% !important;
+      max-width: 950px !important;
+    }
+
+    body.premium-user .page-header h1 {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    body.premium-user .category-tab.active {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+    }
+
+    /* Premium Star Indicator */
+    .premium-star-indicator {
+      position: fixed;
+      top: 50%;
+      right: 0;
+      transform: translateY(-50%);
+      background: linear-gradient(135deg, #f39c12, #e67e22);
+      color: white;
+      padding: 15px 10px;
+      border-radius: 10px 0 0 10px;
+      font-size: 20px;
+      font-weight: bold;
+      z-index: 9999;
+      box-shadow: -3px 0 15px rgba(243, 156, 18, 0.5);
+      cursor: pointer;
+      writing-mode: vertical-rl;
+      text-orientation: mixed;
+      letter-spacing: 2px;
+    }
+
+    .premium-star-indicator::before {
+      content: '⭐';
+      font-size: 24px;
     }
 
     .leaderboard-btn {
@@ -75,11 +187,18 @@
     .leaderboard-btn.locked {
       background: linear-gradient(135deg, #bdc3c7, #95a5a6);
       cursor: not-allowed;
+      opacity: 0.4;
+      pointer-events: none;
     }
 
     .leaderboard-btn.locked:hover {
       transform: none;
       box-shadow: none;
+    }
+
+    .leaderboard-btn.locked::after {
+      content: "🔒";
+      margin-left: 8px;
     }
 
     .logout-btn {
@@ -291,32 +410,6 @@
 
     .filter-btn:hover:not(.active) {
       border-color: #635BFF;
-    }
-
-    /* Download Button */
-    .download-btn {
-      background: linear-gradient(135deg, #27ae60, #219a52);
-      color: white;
-      border: none;
-      padding: 10px 20px;
-      border-radius: 8px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: transform 0.3s ease, box-shadow 0.3s ease;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-left: auto;
-    }
-
-    .download-btn:hover:not(:disabled) {
-      transform: translateY(-2px);
-      box-shadow: 0 5px 15px rgba(39, 174, 96, 0.3);
-    }
-
-    .download-btn:disabled {
-      background: linear-gradient(135deg, #bdc3c7, #95a5a6);
-      cursor: not-allowed;
     }
 
     /* Summary Cards */
@@ -578,7 +671,7 @@
           <button type="button" class="leaderboard-btn" onclick="handleLeaderboard()" id="leaderboardBtn">
             🏆 Leaderboard
           </button>
-          <button class="premium-btn" onclick="goToPremium()" id="premiumBtn">
+          <button type="button" class="premium-btn" id="premiumBtn" onclick="goToPremium()">
             💎 Buy Premium
           </button>
         </div>
@@ -590,32 +683,6 @@
           <h3>💸 Total Expenses</h3>
           <div class="amount" id="totalExpenses">$0.00</div>
         </div>
-        <div class="summary-card income">
-          <h3>💰 Total Income</h3>
-          <div class="amount" id="totalIncome">$0.00</div>
-        </div>
-        <div class="summary-card balance">
-          <h3>📊 Balance</h3>
-          <div class="amount" id="balance">$0.00</div>
-          <div id="profitLossIndicator" class="profit-indicator">⚖️ Break Even</div>
-        </div>
-      </div>
-
-      <!-- Download Button (Premium Only) -->
-      <div style="margin-bottom: 20px; display: flex; justify-content: flex-end;">
-        <button class="download-btn" id="downloadBtn" onclick="downloadExpenses()" disabled>
-          📥 Download Expenses
-        </button>
-      </div>
-
-      <!-- Type Toggle (Premium Feature) -->
-      <div class="type-toggle" id="typeToggle">
-        <button class="type-btn active" onclick="setViewType('expense')" id="expenseTab">
-          💸 Add Expense
-        </button>
-        <button class="type-btn" onclick="setViewType('income')" id="incomeTab">
-          💰 Add Income
-        </button>
       </div>
 
       <!-- Category Tabs -->
@@ -648,8 +715,8 @@
       </div>
 
       <!-- Expense Form Section -->
-      <div id="expenseFormSection" class="form-section active">
-        <form id="expenseForm" class="login-form">
+      <div id="expenseFormSection" class="form-section active" style="display: block !important;">
+        <form id="expenseForm" class="login-form" style="display: block !important;">
 
           <div class="input-group">
             <input type="number" id="amount" required placeholder=" ">
@@ -663,79 +730,18 @@
             <div class="input-border"></div>
           </div>
 
-         
-  <label for="category">Choose a category:</label>
-<input type="text" id="category" name="category" placeholder="AI will suggest..." style="width:100%; padding:12px; border:1px solid #e3e8ee; border-radius:6px; font-size:16px;">
-  <div id="ai-suggestion-container"></div>
-  
-  <button id="aiInsightsBtn" class="ai-insights-btn" type="button" onclick="handleInsights()">
-    🧠 AI Insights
-  </button>
-  <br><br>
+          <label for="category">Choose a category:</label>
+          <input type="text" id="category" name="category" placeholder="AI will suggest..." style="width:100%; padding:12px; border:1px solid #e3e8ee; border-radius:6px; font-size:16px;">
+          <div id="ai-suggestion-container"></div>
+          
+          <button id="aiInsightsBtn" class="ai-insights-btn" type="button" onclick="handleInsights()">
+            🧠 AI Insights
+          </button>
+          <br><br>
 
-        <button type="submit" class="submit-btn">💸 Add Expense</button>
+          <button type="submit" class="submit-btn">💸 Add Expense</button>
 
         </form>
-      </div>
-
-      <!-- Income Form Section -->
-      <div id="incomeFormSection" class="form-section">
-        <!-- Income Type Toggle -->
-        <div class="income-toggle">
-          <button class="income-type-btn active" onclick="setIncomeType('regular')" id="regularIncomeTab">
-            💵 Regular Income
-          </button>
-          <button class="income-type-btn" onclick="setIncomeType('hustle')" id="hustleIncomeTab">
-            🚀 Side Hustle
-          </button>
-        </div>
-
-        <!-- Regular Income Form -->
-        <div id="regularIncomeSection">
-          <form id="incomeForm" class="income-form">
-            <div class="input-group">
-              <input type="number" id="incomeAmount" required placeholder=" " step="0.01" min="0.01">
-              <label>Income Amount</label>
-              <div class="input-border"></div>
-            </div>
-
-            <div class="input-group">
-              <input type="text" id="incomeDescription" required placeholder=" ">
-              <label>Description (e.g., Salary, Freelance)</label>
-              <div class="input-border"></div>
-            </div>
-
-            <div class="input-group">
-              <input type="text" id="incomeCategory" placeholder=" " value="Salary">
-              <label>Category</label>
-              <div class="input-border"></div>
-            </div>
-
-            <button type="submit" class="submit-btn">💵 Add Income</button>
-          </form>
-        </div>
-
-        <!-- Side Hustle Form -->
-        <div id="sideHustleSection" style="display: none;">
-          <form id="sideHustleForm" class="side-hustle-form">
-            <div class="input-group">
-              <input type="number" id="hustleAmount" required placeholder=" " step="0.01" min="0.01">
-              <label>Amount</label>
-              <div class="input-border"></div>
-            </div>
-
-            <div class="input-group">
-              <input type="text" id="hustleDescription" required placeholder=" ">
-              <label>What did you earn from? (e.g., Tutoring, Selling items)</label>
-              <div class="input-border"></div>
-            </div>
-
-            <button type="submit" class="submit-btn">➕ Add</button>
-          </form>
-          <p class="side-hustle-examples">
-            Examples: <span>Freelancing</span><span>selling crafts</span><span>part-time job</span><span>gig work</span><span>tutoring</span><span>consulting</span><span>renting equipment</span>
-          </p>
-        </div>
       </div>
 
       <!-- Expense/Income List -->
@@ -781,7 +787,6 @@
     let currentViewType = 'expense';
     let isPremiumUser = false;
     let allExpenses = [];
-    let allIncomes = [];
     let currentPage = 1;
     let itemsPerPage = parseInt(localStorage.getItem('expensesPerPage')) || 5;
     let filteredItemsData = [];
@@ -800,8 +805,7 @@
       itemsPerPage = parseInt(document.getElementById('itemsPerPage').value);
       localStorage.setItem('expensesPerPage', itemsPerPage);
       currentPage = 1;
-      const entries = currentViewType === 'expense' ? allExpenses : allIncomes;
-      renderEntries(entries);
+      renderEntries(allExpenses);
     }
 
     // Check and update premium status
@@ -811,35 +815,82 @@
 
       try {
         const response = await axios.get('/api/payment/premium-status');
-        const { isPremium } = response.data;
+        const { isPremium, premiumTier = 0 } = response.data;
         
-        console.log('✅ Premium status check:', isPremium);
+        console.log('✅ Premium status check:', isPremium, 'Tier:', premiumTier);
         isPremiumUser = isPremium;
+        
+        // Apply premium background styling
+        if (isPremium) {
+          document.body.classList.add('premium-user');
+          
+          // Clear existing styles first, then set premium background
+          document.body.style.cssText = 'background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important; background-image: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important; background-color: #667eea !important; background-attachment: fixed !important; min-height: 100vh; display: block;';
+          
+          console.log('🎨 Premium background applied, isPremium:', isPremium);
+          
+          // Add premium indicator to header
+          const headerDiv = document.querySelector('.page-header > div > h1');
+          if (headerDiv) {
+            headerDiv.innerHTML = `Expense Tracker <span style="background: linear-gradient(135deg, #f39c12, #e67e22); color: white; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 700; margin-left: 10px;">⭐ ${premiumTier === 3 ? 'ELITE' : premiumTier === 2 ? 'PLUS' : 'BASIC'}</span>`;
+          }
+          
+          // Add premium star indicator on the side
+          let starIndicator = document.getElementById('premiumStarIndicator');
+          if (!starIndicator) {
+            starIndicator = document.createElement('div');
+            starIndicator.id = 'premiumStarIndicator';
+            starIndicator.className = 'premium-star-indicator';
+            starIndicator.textContent = premiumTier === 3 ? 'ELITE' : premiumTier === 2 ? 'PLUS' : 'BASIC';
+            document.body.appendChild(starIndicator);
+          } else {
+            starIndicator.style.display = 'block';
+          }
+          
+          console.log('🎨 Premium background applied');
+        } else {
+          // Ensure premium styles are removed for non-premium users
+          document.body.classList.remove('premium-user');
+          document.body.style.background = '';
+          document.body.style.backgroundImage = '';
+          document.body.style.backgroundAttachment = '';
+          
+          // Hide premium star indicator
+          const starIndicator = document.getElementById('premiumStarIndicator');
+          if (starIndicator) {
+            starIndicator.style.display = 'none';
+          }
+        }
         
         const premiumBtn = document.getElementById('premiumBtn');
         const leaderboardBtn = document.getElementById('leaderboardBtn');
-        const downloadBtn = document.getElementById('downloadBtn');
         
         if (isPremium) {
-          premiumBtn.innerHTML = '✓ Premium Member <span class="premium-badge">ACTIVE</span>';
-          premiumBtn.disabled = true;
-          premiumBtn.style.cursor = 'default';
-          premiumBtn.style.opacity = '0.7';
+          const tierNames = ['Free', 'Basic', 'Plus', 'Elite'];
+          const tierName = tierNames[premiumTier] || 'Premium';
+          
+          if (premiumTier < 3) {
+            premiumBtn.innerHTML = `✓ ${tierName} Member <span class="premium-badge">UPGRADE</span>`;
+            premiumBtn.disabled = false;
+            premiumBtn.style.cursor = 'pointer';
+            premiumBtn.style.opacity = '1';
+            premiumBtn.classList.remove('faded');
+          } else {
+            premiumBtn.innerHTML = `✓ ${tierName} Member <span class="premium-badge">ACTIVE</span>`;
+            premiumBtn.disabled = true;
+            premiumBtn.style.cursor = 'default';
+            premiumBtn.style.opacity = '0.7';
+          }
           
           leaderboardBtn.classList.remove('locked');
           leaderboardBtn.innerHTML = '🏆 Leaderboard';
           
-          // Enable premium features
-          downloadBtn.disabled = false;
-          downloadBtn.title = 'Download your expenses';
-          
-          console.log('✅ Premium features unlocked');
+          console.log('✅ Premium features unlocked, tier:', premiumTier);
         } else {
           leaderboardBtn.classList.add('locked');
           leaderboardBtn.innerHTML = '🔒 Leaderboard';
           
-          downloadBtn.disabled = true;
-          downloadBtn.title = 'Buy premium to download expenses';
+          premiumBtn.classList.add('faded');
           
           console.log('❌ Premium features locked');
         }
@@ -920,62 +971,11 @@
       fetchAndRenderEntries();
     }
 
-    // Set view type (expense/income)
+    // Set view type (expense/income) - simplified to expense only
     function setViewType(type) {
       currentViewType = type;
-      
-      // Update button styles
       document.getElementById('expenseTab').classList.toggle('active', type === 'expense');
-      document.getElementById('incomeTab').classList.toggle('active', type === 'income');
-      
-      // Show/hide form sections
-      const expenseFormSection = document.getElementById('expenseFormSection');
-      const incomeFormSection = document.getElementById('incomeFormSection');
-      
-      if (type === 'expense') {
-        expenseFormSection.classList.add('active');
-        incomeFormSection.classList.remove('active');
-      } else {
-        expenseFormSection.classList.remove('active');
-        incomeFormSection.classList.add('active');
-        // Reset to regular income tab when switching to income
-        setIncomeType('regular');
-      }
-      
-      // Update summary cards visibility
-      const expenseCard = document.querySelector('.summary-card.expense');
-      const incomeCard = document.querySelector('.summary-card.income');
-      
-      if (type === 'expense') {
-        expenseCard.style.display = 'block';
-        incomeCard.style.display = 'none';
-      } else {
-        expenseCard.style.display = 'none';
-        incomeCard.style.display = 'block';
-      }
-      
-      // Refresh the list
       fetchAndRenderEntries();
-    }
-
-    // Set income type (regular/hustle)
-    function setIncomeType(type) {
-      const regularTab = document.getElementById('regularIncomeTab');
-      const hustleTab = document.getElementById('hustleIncomeTab');
-      const regularSection = document.getElementById('regularIncomeSection');
-      const hustleSection = document.getElementById('sideHustleSection');
-      
-      if (type === 'regular') {
-        regularTab.classList.add('active');
-        hustleTab.classList.remove('active');
-        regularSection.style.display = 'block';
-        hustleSection.style.display = 'none';
-      } else {
-        regularTab.classList.remove('active');
-        hustleTab.classList.add('active');
-        regularSection.style.display = 'none';
-        hustleSection.style.display = 'block';
-      }
     }
 
     // Fetch and render entries based on current filters
@@ -993,27 +993,12 @@
         });
         allExpenses = expenseRes.data || [];
 
-        // Fetch incomes
-        const incomeRes = await axios.get('/api/auth/get-incomes', {
-          params: { startDate, endDate }
-        });
-        allIncomes = incomeRes.data || [];
-
-        // Calculate totals
+        // Calculate total
         const totalExpense = allExpenses.reduce((sum, e) => sum + parseFloat(e.amount || 0), 0);
-        const totalIncome = allIncomes.reduce((sum, i) => sum + parseFloat(i.amount || 0), 0);
-        const balance = totalIncome - totalExpense;
-
         document.getElementById('totalExpenses').textContent = '$' + totalExpense.toFixed(2);
-        document.getElementById('totalIncome').textContent = '$' + totalIncome.toFixed(2);
-        document.getElementById('balance').textContent = '$' + balance.toFixed(2);
 
-        // Update list title
-        updateListTitle();
-
-        // Render entries based on current view type
-        const entries = currentViewType === 'expense' ? allExpenses : allIncomes;
-        renderEntries(entries);
+        // Render entries
+        renderEntries(allExpenses);
 
       } catch (err) {
         console.error('Error fetching entries:', err);
@@ -1023,9 +1008,10 @@
     // Update list title based on filters
     function updateListTitle() {
       const titles = {
-        daily: "📅 Today's " + (currentViewType === 'expense' ? 'Expenses' : 'Income'),
-        weekly: '📆 This Week\'s ' + (currentViewType === 'expense' ? 'Expenses' : 'Income'),
-        monthly: '📆 This Month\'s ' + (currentViewType === 'expense' ? 'Expenses' : 'Income')
+        daily: "📅 Today's Expenses",
+        weekly: '📆 This Week\'s Expenses',
+        monthly: '📆 This Month\'s Expenses',
+        yearly: '📊 This Year\'s Expenses'
       };
       document.getElementById('listTitle').textContent = titles[currentTimeFilter] || titles.daily;
     }
@@ -1037,7 +1023,7 @@
 
       if (!items || items.length === 0) {
         const empty = document.createElement('li');
-        empty.textContent = 'No ' + (currentViewType === 'expense' ? 'expenses' : 'income') + ' yet';
+        empty.textContent = 'No expenses yet';
         empty.style.color = '#8792a2';
         empty.style.padding = '20px';
         empty.style.textAlign = 'center';
@@ -1150,18 +1136,19 @@
  
         const right = document.createElement('div');
         right.style.textAlign = 'right';
+        right.className = 'right-section';
  
         const amt = document.createElement('div');
         amt.className = 'amt-text';
         amt.style.fontWeight = '700';
-        amt.style.color = item.entryType === 'income' ? '#27ae60' : '#635BFF';
+        amt.style.color = '#635BFF';
         const value = Number(item.amount || 0).toFixed(2);
-        amt.textContent = (item.entryType === 'income' ? '+$' : '-$') + value;
- 
+        amt.textContent = '-$' + value;
+  
         const actions = document.createElement('div');
         actions.className = 'actions-container';
         actions.style.marginTop = '6px';
- 
+  
         const editBtn = document.createElement('button');
         editBtn.textContent = '✏️ Edit';
         editBtn.dataset.id = item.id;
@@ -1171,11 +1158,11 @@
         editBtn.style.borderRadius = '6px';
         editBtn.style.cursor = 'pointer';
         editBtn.style.marginRight = '5px';
- 
+  
         editBtn.addEventListener('click', function() {
           startInlineEdit(item, li);
         });
- 
+  
         const delBtn = document.createElement('button');
         delBtn.textContent = '🗑️ Delete';
         delBtn.dataset.id = item.id;
@@ -1184,25 +1171,20 @@
         delBtn.style.padding = '6px 8px';
         delBtn.style.borderRadius = '6px';
         delBtn.style.cursor = 'pointer';
- 
+  
         delBtn.addEventListener('click', async function() {
           const id = delBtn.dataset.id;
           if (!confirm(`Delete entry $${Number(item.amount || 0).toFixed(2)}?`)) return;
           
           try {
-            const endpoint = item.entryType === 'income' ? '/api/auth/delete-income' : '/api/auth/delete-expense';
-            await axios.delete(`${endpoint}/${id}`);
+            await axios.delete(`/api/auth/delete-expense/${id}`);
             
             // Update totals immediately
             const deletedAmount = parseFloat(item.amount || 0);
-            updateTotalsFromChange(item.entryType, deletedAmount, 0);
+            updateTotalsFromChange('expense', deletedAmount, 0);
             
             // Remove from local data
-            if (item.entryType === 'income') {
-              allIncomes = allIncomes.filter(i => i.id !== id);
-            } else {
-              allExpenses = allExpenses.filter(e => e.id !== id);
-            }
+            allExpenses = allExpenses.filter(e => e.id !== id);
             
             fetchAndRenderEntries();
           } catch (err) {
@@ -1370,9 +1352,7 @@
         return;
       }
 
-      const endpoint = item.entryType === 'income' ? '/api/auth/update-income' : '/api/auth/update-expense';
-      
-      axios.put(`${endpoint}/${item.id}`, {
+      axios.put(`/api/auth/update-expense/${item.id}`, {
         amount: newAmount,
         description: newDescription
       }).then(() => {
@@ -1382,7 +1362,7 @@
         item.description = newDescription;
 
         // Update totals in real-time
-        updateTotalsFromChange(item.entryType, oldAmount, newAmount);
+        updateTotalsFromChange('expense', oldAmount, newAmount);
 
         // Restore view mode with new values
         restoreRowView(rowElement, item);
@@ -1402,11 +1382,8 @@
       // Find the row being edited
       const editRow = document.querySelector(`[data-edit-id="${currentlyEditingId}"]`);
       if (editRow) {
-        const item = currentViewType === 'expense' 
-          ? allExpenses.find(e => e.id === currentlyEditingId)
-          : allIncomes.find(i => i.id === currentlyEditingId);
+        const item = allExpenses.find(e => e.id === currentlyEditingId);
         if (item) {
-          // Just restore the view without making changes
           restoreRowView(editRow, item);
         }
       }
@@ -1457,9 +1434,9 @@
       const amt = document.createElement('div');
       amt.className = 'amt-text';
       amt.style.fontWeight = '700';
-      amt.style.color = item.entryType === 'income' ? '#27ae60' : '#635BFF';
+      amt.style.color = '#635BFF';
       const value = Number(item.amount || 0).toFixed(2);
-      amt.textContent = (item.entryType === 'income' ? '+$' : '-$') + value;
+      amt.textContent = '-$' + value;
       
       const actions = document.createElement('div');
       actions.className = 'actions-container';
@@ -1479,19 +1456,14 @@
         if (!confirm(`Delete entry $${Number(item.amount || 0).toFixed(2)}?`)) return;
         
         try {
-          const endpoint = item.entryType === 'income' ? '/api/auth/delete-income' : '/api/auth/delete-expense';
-          await axios.delete(`${endpoint}/${item.id}`);
+          await axios.delete(`/api/auth/delete-expense/${item.id}`);
           
           // Update totals immediately
           const deletedAmount = parseFloat(item.amount || 0);
-          updateTotalsFromChange(item.entryType, deletedAmount, 0);
+          updateTotalsFromChange('expense', deletedAmount, 0);
           
           // Remove from local data
-          if (item.entryType === 'income') {
-            allIncomes = allIncomes.filter(i => i.id !== item.id);
-          } else {
-            allExpenses = allExpenses.filter(e => e.id !== item.id);
-          }
+          allExpenses = allExpenses.filter(e => e.id !== item.id);
           
           fetchAndRenderEntries();
         } catch (err) {
@@ -1512,46 +1484,8 @@
 
     // Update totals in real-time without full refresh
     function updateTotalsFromChange(entryType, oldAmount, newAmount) {
-      let totalExpense = 0;
-      let totalIncome = 0;
-
-      allExpenses.forEach(e => {
-        if (e.id === currentlyEditingId) {
-          totalExpense += newAmount;
-        } else {
-          totalExpense += parseFloat(e.amount || 0);
-        }
-      });
-
-      allIncomes.forEach(i => {
-        if (i.id === currentlyEditingId) {
-          totalIncome += newAmount;
-        } else {
-          totalIncome += parseFloat(i.amount || 0);
-        }
-      });
-
-      const balance = totalIncome - totalExpense;
-
-      // Animate the totals update
+      const totalExpense = allExpenses.reduce((sum, e) => sum + parseFloat(e.amount || 0), 0);
       animateTotalUpdate('totalExpenses', totalExpense);
-      animateTotalUpdate('totalIncome', totalIncome);
-      animateTotalUpdate('balance', balance);
-
-      // Update profit/loss indicator
-      const indicator = document.getElementById('profitLossIndicator');
-      if (indicator) {
-        if (balance > 0) {
-          indicator.textContent = '📈 Profit';
-          indicator.style.color = '#27ae60';
-        } else if (balance < 0) {
-          indicator.textContent = '📉 Loss';
-          indicator.style.color = '#e74c3c';
-        } else {
-          indicator.textContent = '⚖️ Break Even';
-          indicator.style.color = '#f39c12';
-        }
-      }
     }
 
     // Animate total value change
@@ -1585,9 +1519,7 @@
           e.preventDefault();
           const editRow = document.querySelector(`[data-edit-id="${currentlyEditingId}"]`);
           if (editRow) {
-            const item = currentViewType === 'expense' 
-              ? allExpenses.find(ex => ex.id === currentlyEditingId)
-              : allIncomes.find(income => income.id === currentlyEditingId);
+            const item = allExpenses.find(ex => ex.id === currentlyEditingId);
             if (item) {
               saveInlineEdit(item, editRow);
             }
@@ -1598,61 +1530,6 @@
     
     // Make startInlineEdit globally accessible for legacy compatibility
     window.startInlineEdit = startInlineEdit;
-
-    // Download expenses as file (Premium feature)
-    async function downloadExpenses() {
-      if (!isPremiumUser) {
-        alert('Buy premium membership to download expenses.');
-        return;
-      }
-
-      try {
-        const token = getToken();
-        
-        // Get all expenses
-        const expenseRes = await axios.get('/api/auth/get-expenses');
-        const incomeRes = await axios.get('/api/auth/get-incomes');
-        
-        const expenses = expenseRes.data || [];
-        const incomes = incomeRes.data || [];
-
-        // Create CSV content
-        let csvContent = 'Type,Amount,Description,Category,Date\n';
-        
-        expenses.forEach(e => {
-          csvContent += `Expense,${e.amount},"${e.description || ''}","${e.category || ''}","${new Date(e.createdAt).toLocaleString()}"\n`;
-        });
-        
-        incomes.forEach(i => {
-          csvContent += `Income,${i.amount},"${i.description || ''}","${i.category || ''}","${new Date(i.createdAt).toLocaleString()}"\n`;
-        });
-
-        // Calculate totals
-        const totalExpense = expenses.reduce((sum, e) => sum + parseFloat(e.amount || 0), 0);
-        const totalIncome = incomes.reduce((sum, i) => sum + parseFloat(i.amount || 0), 0);
-        
-        csvContent += `\n\nSummary\n`;
-        csvContent += `Total Expenses,${totalExpense.toFixed(2)}\n`;
-        csvContent += `Total Income,${totalIncome.toFixed(2)}\n`;
-        csvContent += `Balance,${(totalIncome - totalExpense).toFixed(2)}\n`;
-
-        // Download file
-        const blob = new Blob([csvContent], { type: 'text/csv' });
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `expense-report-${formatDate(new Date())}.csv`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        window.URL.revokeObjectURL(url);
-
-        console.log('✅ Expenses downloaded successfully');
-      } catch (err) {
-        console.error('Download error:', err);
-        alert('Failed to download expenses');
-      }
-    }
 
     // Show leaderboard
     async function showLeaderboard() {
@@ -1698,6 +1575,24 @@
       window.location.href = '/payment-options';
     }
 
+    // Add click event listener for premium button
+    document.getElementById('premiumBtn').addEventListener('click', goToPremium);
+
+    // Make functions available globally
+    window.goToPremium = goToPremium;
+    window.handleLeaderboard = handleLeaderboard;
+    window.showLeaderboard = showLeaderboard;
+    window.closeModal = closeModal;
+    window.checkPremiumStatus = checkPremiumStatus;
+    window.setCategory = setCategory;
+    window.setTimeFilter = setTimeFilter;
+    window.setViewType = setViewType;
+    window.changeItemsPerPage = changeItemsPerPage;
+    window.nextPage = nextPage;
+    window.prevPage = prevPage;
+    window.applyDateFilter = applyDateFilter;
+    window.handleInsights = handleInsights;
+
     // Initialize on page load
     window.addEventListener('load', () => {
       setTimeout(() => {
@@ -1715,38 +1610,40 @@
       if (expenseForm) {
         expenseForm.addEventListener('submit', async function(e) {
           e.preventDefault();
+          console.log('📝 Expense form submitted');
           
           if (!checkAuth()) return;
           
           const amountEl = document.getElementById('amount');
           const descriptionEl = document.getElementById('description');
           const categoryEl = document.getElementById('category');
-          const entryTypeEl = document.getElementById('entryType');
-
           const amount = parseFloat(amountEl.value.trim());
           const description = descriptionEl.value.trim();
           const category = categoryEl.value.trim() || 'Uncategorized';
-          const entryType = entryTypeEl.value;
-          
+
+          console.log('📊 Form data:', { amount, description, category });
+
           if (!amount || !description || amount <= 0) {
             alert('Please enter valid amount (>0) and description');
             return;
           }
 
           try {
-            const endpoint = entryType === 'income' ? '/api/auth/add-income' : '/api/auth/add-expense';
-            await axios.post(endpoint, { 
+            console.log('📤 Sending add-expense request...');
+            const response = await axios.post('/api/auth/add-expense', { 
               amount, 
               description, 
               category,
-              entryType,
-              status: 'completed' 
+              status: 'pending' 
             });
             
+            console.log('📥 Response received:', response.data);
             expenseForm.reset();
             fetchAndRenderEntries();
             alert('Entry added successfully!');
           } catch (err) {
+            console.error('❌ Add expense error:', err);
+            console.error('❌ Error response:', err.response?.data);
             alert(err.response?.data?.error || 'Failed to add entry');
           }
         });
@@ -1810,6 +1707,22 @@
         </div>
       `;
       document.body.appendChild(modal.firstElementChild);
+    }
+
+    function showAISuggestion(category) {
+      const categoryEl = document.getElementById('category');
+      let suggEl = document.getElementById('aiSuggestion');
+      
+      if (!suggEl && categoryEl) {
+        suggEl = document.createElement('div');
+        suggEl.id = 'aiSuggestion';
+        suggEl.style.cssText = 'color: #10b981; font-size: 14px; margin-top: 4px; font-style: italic;';
+        categoryEl.parentNode.appendChild(suggEl);
+      }
+      
+      if (suggEl) {
+        suggEl.textContent = `🤖 AI suggests: ${category}`;
+      }
     }
   </script>
 </body>

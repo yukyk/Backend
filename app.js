@@ -3,8 +3,6 @@ require("dotenv").config();
 const express = require("express");
 const path = require("path");
 const cors = require("cors");
-const morgan = require('morgan');
-const fs = require('fs');
 
 const authRoutes = require("./Routes/signupRoutes");
 const paymentRoutes = require("./Routes/paymentRoutes");
@@ -12,17 +10,12 @@ const passwordRoutes = require("./Routes/passwordRoutes");
 const sequelize = require("./Utils/util");
 const Signup = require("./Models/signupModel");
 const Expense = require("./Models/expenseModel");
-const Income = require("./Models/incomeModel");
 const Order = require("./Models/orderModel");
 const ForgotPasswordRequests = require("./Models/forgotPasswordRequests");
 
 const app = express();
 
-// Log stream
-const logStream = fs.createWriteStream(path.join(__dirname, 'logs/app.log'), { flags: 'a' });
-
 // ✅ Middleware
-app.use(morgan('combined', { stream: logStream }));
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -30,9 +23,6 @@ app.use(express.urlencoded({ extended: true }));
 // ✅ Associations
 Signup.hasMany(Expense, { foreignKey: 'userId' });
 Expense.belongsTo(Signup, { foreignKey: 'userId' });
-
-Signup.hasMany(Income, { foreignKey: 'userId' });
-Income.belongsTo(Signup, { foreignKey: 'userId' });
 
 Signup.hasMany(Order, { foreignKey: 'userId' });
 Order.belongsTo(Signup, { foreignKey: 'userId' });
@@ -75,44 +65,16 @@ app.get("/password/resetpassword/:id", (req, res) => {
 });
 
 app.get("/tracker", (req, res) => {
-    res.sendFile(path.join(__dirname, "public", "dist", "index.html"));
+    res.sendFile(path.join(__dirname, "public", "tracker.html"));
 });
 
 // ✅ Static files LAST (after all routes)
 app.use(express.static(path.join(__dirname, "public")));
-app.use('/tracker', express.static(path.join(__dirname, "public", "dist")));
 app.use(express.static(path.join(__dirname, "View")));
-
-// ✅ Helper function to clean up excess indexes
-async function cleanupExcessIndexes() {
-    try {
-        const [results] = await sequelize.query(`
-            SELECT INDEX_NAME 
-            FROM INFORMATION_SCHEMA.STATISTICS 
-            WHERE TABLE_SCHEMA = DATABASE() 
-            AND TABLE_NAME = 'signup' 
-            AND INDEX_NAME != 'PRIMARY'
-            AND SEQ_IN_INDEX > 4
-        `);
-
-        for (const idx of results) {
-            try {
-                await sequelize.query(`DROP INDEX \`${idx.INDEX_NAME}\` ON \`signup\``);
-                console.log(`Dropped excess index: ${idx.INDEX_NAME}`);
-            } catch (dropErr) {
-                console.log(`Could not drop index ${idx.INDEX_NAME}:`, dropErr.message);
-            }
-        }
-    } catch (err) {
-        console.log('Index cleanup skipped:', err.message);
-    }
-}
 
 // ✅ Database sync
 sequelize.sync({ alter: true }).then(async () => {
     console.log('Database synced successfully');
-
-    await cleanupExcessIndexes();
 
     const port = process.env.PORT || 3000;
     app.listen(port, () => {
@@ -124,8 +86,6 @@ sequelize.sync({ alter: true }).then(async () => {
         try {
             await sequelize.sync({ alter: false });
             console.log('Database synced successfully (without alter)');
-
-            await cleanupExcessIndexes();
 
             const port = process.env.PORT || 3000;
             app.listen(port, () => {

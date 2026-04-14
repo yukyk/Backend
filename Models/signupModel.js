@@ -46,6 +46,11 @@ const Signup = sequelize.define('Signup', {
         type: DataTypes.BOOLEAN,
         defaultValue: false
     },
+    premiumTier: {
+        type: DataTypes.INTEGER,
+        defaultValue: 0,
+        comment: '0=free, 1=basic, 2=plus, 3=elite'
+    },
     totalExpense: {
         type: DataTypes.FLOAT,
         defaultValue: 0,

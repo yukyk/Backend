@@ -219,10 +219,11 @@
 
     <div id="alertMessage" class="alert"></div>
 
-      <!-- Diagnostic Test Button -->
-      <button onclick="testAuth()" style="margin-bottom: 20px; padding: 10px 20px; background: #f0f2f5; color: #635BFF; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">
-        🔍 Test Token (Debug)
-      </button>
+    <div class="pricing-cards">
+      <!-- Basic Plan -->
+      <div class="pricing-card">
+        <h3 style="margin-top: 0; color: #1a1f36;">Premium Basic</h3>
+        <div class="pricing-amount"><span class="pricing-currency">₹</span>499</div>
         <p class="pricing-period">One-time payment</p>
         <ul class="pricing-features">
           <li>Advanced expense analytics</li>
@@ -231,7 +232,7 @@
           <li class="unavailable">Multi-account sync</li>
           <li class="unavailable">Priority support</li>
         </ul>
-        <button class="select-plan-btn" onclick="selectPlan(499)">Select Plan</button>
+        <button type="button" class="select-plan-btn" onclick="selectPlan(499)">Select Plan</button>
       </div>
 
       <!-- Popular Plan -->
@@ -247,7 +248,7 @@
           <li>Multi-account sync</li>
           <li class="unavailable">Priority support</li>
         </ul>
-        <button class="select-plan-btn" onclick="selectPlan(999)">Select Plan</button>
+        <button type="button" class="select-plan-btn" onclick="selectPlan(999)">Select Plan</button>
       </div>
 
       <!-- Premium Plan -->
@@ -262,7 +263,7 @@
           <li>Multi-account sync</li>
           <li>Priority 24/7 support</li>
         </ul>
-        <button class="select-plan-btn" onclick="selectPlan(1599)">Select Plan</button>
+        <button type="button" class="select-plan-btn" onclick="selectPlan(1599)">Select Plan</button>
       </div>
     </div>
 
@@ -356,11 +357,14 @@
     async function selectPlan(amount) {
       if (!checkAuth()) return;
 
+      const tierMap = { 499: 1, 999: 2, 1599: 3 };
+      const premiumTier = tierMap[amount] || 1;
+
       document.getElementById('loadingIndicator').style.display = 'block';
       
       try {
-        console.log('💳 Creating payment order for amount:', amount);
-        const response = await axios.post('/api/payment/create-order', { amount });
+        console.log('💳 Creating payment order for amount:', amount, 'tier:', premiumTier);
+        const response = await axios.post('/api/payment/create-order', { amount, premiumTier });
         const { orderId, paymentSessionId } = response.data;
         
         console.log('✅ Order created:', orderId);
@@ -384,12 +388,11 @@
           
           cashfree.checkout(checkoutOptions).then((result) => {
             console.log('🔵 Checkout result received:', result);
+            document.getElementById('loadingIndicator').style.display = 'none';
             
             if(result.error) {
               console.log('🔴 User closed popup or error occurred:', result.error);
-              document.getElementById('loadingIndicator').style.display = 'none';
               showAlert('Payment cancelled. Please try again.', 'error');
-              updatePaymentStatus(orderId, 'FAILED');
             }
             else if(result.redirect) {
               console.log('🔵 Payment will be redirected to return URL');
@@ -405,7 +408,6 @@
             console.error('❌ Checkout error:', error);
             document.getElementById('loadingIndicator').style.display = 'none';
             showAlert('Payment error occurred. Please try again.', 'error');
-            updatePaymentStatus(orderId, 'FAILED');
           });
         };
         
@@ -441,9 +443,13 @@
       try {
         console.log('💳 Verifying payment for order:', orderId);
         const response = await axios.post('/api/payment/verify-payment', { orderId });
+        console.log('📥 Full response:', response);
+        console.log('📥 Response data:', response.data);
+        
         const { status, transactions } = response.data;
 
         console.log('✅ Payment verification result:', status);
+        console.log('📊 Checking if status === "SUCCESSFUL":', status === 'SUCCESSFUL');
         
         if (transactions && transactions.length > 0) {
           console.log('📋 Transaction details:', transactions);
@@ -452,22 +458,25 @@
           });
         }
 
-       if (status === 'SUCCESSFUL') {
-  showAlert('Transaction Successful! Your premium membership is now active.', 'success');
-  setTimeout(() => {
-    // Redirect to expense page - it will check fresh premium status
-    window.location.href = '/expense';
-  }, 2000);
-
-    } else if (status === 'FAILED') {
-          showAlert('Transaction Failed. Please try again.', 'error');
-          document.getElementById('loadingIndicator').style.display = 'none';
-        } else if (status === 'PENDING') {
-          console.log('⏳ Payment still pending, checking again...');
-          document.getElementById('loadingIndicator').style.display = 'none';
-          showAlert('Payment is being processed. Please wait...', 'success');
-          setTimeout(() => verifyPayment(orderId), 3000);
-        }
+        console.log('🔍 Status value:', status, 'Type:', typeof status);
+        console.log('🔍 Exact match check:', status === 'SUCCESSFUL');
+        
+if (status === 'SUCCESSFUL') {
+            console.log('🎉 Calling showHurrayScreen!');
+            showHurrayScreen();
+          } else if (status === 'FAILED') {
+           console.log('❌ Payment failed');
+           showAlert('Transaction Failed. Please try again.', 'error');
+           document.getElementById('loadingIndicator').style.display = 'none';
+         } else if (status === 'PENDING') {
+           console.log('⏳ Payment still pending, checking again...');
+           document.getElementById('loadingIndicator').style.display = 'none';
+           showAlert('Payment is being processed. Please wait...', 'success');
+           setTimeout(() => verifyPayment(orderId), 3000);
+         } else {
+           console.log('❓ Unknown status:', status);
+           showAlert('Payment status: ' + status, 'error');
+         }
       } catch (error) {
         console.error('❌ Verification error:', error);
         console.error('Error response:', error.response?.data);
@@ -495,6 +504,63 @@
           alertElement.style.display = 'none';
         }, 3000);
       }
+    }
+
+    function showHurrayScreen() {
+      const hurrayDiv = document.createElement('div');
+      hurrayDiv.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(135deg, #635BFF, #5245d8);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        z-index: 10000;
+        text-align: center;
+      `;
+      
+      hurrayDiv.innerHTML = `
+        <div style="animation: bounce 1s ease infinite;">
+          <h1 style="font-size: 72px; margin: 0;">🎉</h1>
+        </div>
+        <h2 style="color: white; font-size: 36px; margin: 20px 0 10px 0;">Hurray!</h2>
+        <p style="color: white; font-size: 20px; margin: 0 0 30px 0;">You are now a Premium Member!</p>
+        <p style="color: rgba(255,255,255,0.8); font-size: 16px; margin: 0 0 40px 0;">Enjoy unlimited access to all premium features.</p>
+        <button onclick="goToExpense()" style="
+          background: white;
+          color: #635BFF;
+          border: none;
+          padding: 15px 40px;
+          border-radius: 30px;
+          font-size: 18px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: transform 0.3s ease;
+        ">Get Started →</button>
+      `;
+      
+      const style = document.createElement('style');
+      style.textContent = `
+        @keyframes bounce {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-20px); }
+        }
+        @keyframes fadeIn {
+          from { opacity: 0; transform: scale(0.9); }
+          to { opacity: 1; transform: scale(1); }
+        }
+      `;
+      document.head.appendChild(style);
+      hurrayDiv.style.animation = 'fadeIn 0.5s ease';
+      document.body.appendChild(hurrayDiv);
+    }
+
+    function goToExpense() {
+      window.location.href = '/expense';
     }
 
     // Check authentication on page load

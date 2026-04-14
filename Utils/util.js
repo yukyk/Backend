@@ -14,8 +14,10 @@ const sequelize = new Sequelize(process.env.DB_NAME || 'expense_tracker', proces
   },
   retry: {
     match: [/SequelizeConnectionAcquireTimeoutError/, /ER_LOCK_WAIT_TIMEOUT/],
-    max: 3
-  }
+    max: 5
+  },
+  transactionType: 'IMMEDIATE',
+  isolationLevel: 'READ COMMITTED'
 });
 
 (async()=> { 

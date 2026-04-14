@@ -1,5 +1,4 @@
 const Expense = require('../Models/expenseModel');
-const Income = require('../Models/incomeModel');
 const Signup = require('../Models/signupModel');
 const sequelize = require('../Utils/util');
 const { Op } = require('sequelize');
@@ -9,15 +8,12 @@ const addExpense = async (req, res) => {
   console.log('🌐 POST /add-expense - Body:', req.body);
   console.log('👤 req.user:', req.user);
   
-  const t = await sequelize.transaction();
-
   try {
     let { amount, description, category, note } = req.body;
 
     console.log('📥 Parsed input:', { amount, description, category, note });
 
     if (!amount || !description) {
-      await t.rollback();
       console.log('❌ Missing required fields');
       return res.status(400).json({ error: "Amount and description are required" });
     }
@@ -25,7 +21,6 @@ const addExpense = async (req, res) => {
     // Ensure amount is a number
     amount = parseFloat(amount);
     if (isNaN(amount) || amount <= 0) {
-      await t.rollback();
       console.log('❌ Invalid amount:', amount);
       return res.status(400).json({ error: "Amount must be a valid positive number" });
     }
@@ -34,11 +29,11 @@ const addExpense = async (req, res) => {
     console.log('🔑 Using userId:', userId);
     
     if (!userId) {
-      await t.rollback();
       console.log('❌ No userId from auth');
       return res.status(401).json({ error: 'Unauthorized - no userId' });
     }
 
+    // Simplify - no transaction to avoid lock issues
     const expense = await Expense.create({
       amount,
       description,
@@ -46,30 +41,25 @@ const addExpense = async (req, res) => {
       status: req.body.status || 'pending',
       userId: userId,
       note: note || null
-    }, { transaction: t });
+    });
     
-    // 👇 NEW DIAGNOSTIC LOGS
     console.log('💾 Expense CREATED:', {
       id: expense.id,
       amount,
       userId,
       description: description.substring(0, 30) + '...'
     });
-    console.log('📊 DB INSERT CONFIRMED:', expense.toJSON());
 
-    // Safe atomic totalExpense update - direct literal (handles races)
+    // Update user total
     await Signup.update(
       { totalExpense: sequelize.literal('totalExpense + ' + amount) },
-      { where: { id: userId }, transaction: t }
+      { where: { id: userId } }
     );
-
-    await t.commit();
 
     console.log(`✅ Expense created - User ${userId}: $${amount} (${expense.id})`);
 
     res.status(201).json(expense);
   } catch (err) {
-    await t.rollback();
     console.error("ADD EXPENSE ERROR:", err);
     res.status(500).json({ error: err.message });
   }
@@ -239,7 +229,11 @@ const getLeaderboard = async (req, res) => {
     const userId = req.user && req.user.userId;
     if (!userId) return res.status(401).json({ error: 'Unauthorized' });
 
-    if (!req.user.isPremium) {
+    const userPremiumTier = req.user.premiumTier || 0;
+    const userIsPremium = req.user.isPremium || false;
+    
+    // Allow if premiumTier > 0 OR isPremium is true (backward compatibility)
+    if (userPremiumTier === 0 && !userIsPremium) {
       return res.status(403).json({ error: 'Access denied. Premium membership required.' });
     }
 
@@ -306,177 +300,6 @@ const recalculateTotals = async () => {
   }
 };
 
-// ==================== INCOME FUNCTIONS ====================
-
-// Add income
-const addIncome = async (req, res) => {
-  console.log('🌐 POST /add-income - Body:', req.body);
-  console.log('👤 req.user:', req.user);
-  
-  const t = await sequelize.transaction();
-
-  try {
-    let { amount, description, category } = req.body;
-
-    if (!amount || !description) {
-      await t.rollback();
-      return res.status(400).json({ error: "Amount and description are required" });
-    }
-
-    amount = parseFloat(amount);
-    if (isNaN(amount) || amount <= 0) {
-      await t.rollback();
-      return res.status(400).json({ error: "Amount must be a valid positive number" });
-    }
-
-    const userId = req.user && req.user.userId;
-    if (!userId) {
-      await t.rollback();
-      return res.status(401).json({ error: 'Unauthorized - no userId' });
-    }
-
-    const income = await Income.create({
-      amount,
-      description,
-      category: category || 'Uncategorized',
-      status: req.body.status || 'completed',
-      userId: userId
-    }, { transaction: t });
-    
-    console.log(`✅ Income created - User ${userId}: $${amount} (${income.id})`);
-
-    await t.commit();
-    res.status(201).json({...income.toJSON(), entryType: 'income'});
-  } catch (err) {
-    await t.rollback();
-    console.error("ADD INCOME ERROR:", err);
-    res.status(500).json({ error: err.message });
-  }
-};
-
-// Get incomes
-const getIncomes = async (req, res) => {
-  console.log('🌐 GET /get-incomes - req.user:', req.user);
-  console.log('📅 Query params:', req.query);
-  
-  try {
-    const userId = req.user && req.user.userId;
-    if (!userId) {
-      return res.status(401).json({ error: 'Unauthorized - no userId' });
-    }
-
-    const { startDate, endDate } = req.query;
-    let whereClause = { userId };
-
-    if (startDate && endDate) {
-      whereClause.createdAt = {
-        [Op.between]: [new Date(startDate), new Date(endDate + 'T23:59:59.999Z')]
-      };
-    } else if (startDate) {
-      whereClause.createdAt = {
-        [Op.gte]: new Date(startDate)
-      };
-    } else if (endDate) {
-      whereClause.createdAt = {
-        [Op.lte]: new Date(endDate + 'T23:59:59.999Z')
-      };
-    }
-
-    const incomes = await Income.findAll({ 
-      where: whereClause,
-      order: [['createdAt', 'DESC']]
-    });
-    
-    const incomesWithType = incomes.map(i => ({
-      ...i.toJSON(),
-      entryType: 'income'
-    }));
-    
-    console.log(`✅ QUERY SUCCESS - Found ${incomesWithType.length} incomes for user ${userId}`);
-    res.json(incomesWithType);
-  } catch(err) {
-    console.error('GET INCOMES ERROR:', err);
-    res.status(500).json({error: "Error fetching incomes"});
-  }
-};
-
-// Delete income
-const deleteIncome = async (req, res) => {
-  console.log('🗑️ DELETE /delete-income/' + req.params.id);
-  
-  const t = await sequelize.transaction();
-
-  try {
-    const {id} = req.params;
-    const userId = req.user && req.user.userId;
-    
-    if (!userId) {
-      await t.rollback();
-      return res.status(401).json({ error: 'Unauthorized' });
-    }
-
-    const income = await Income.findOne({ where: { id }, transaction: t });
-    if (!income) {
-      await t.rollback();
-      return res.status(404).json({ message: `Income with id ${id} not found.` });
-    }
-
-    if (income.userId !== userId) {
-      await t.rollback();
-      return res.status(403).json({ error: 'Forbidden - not your income' });
-    }
-
-    await Income.destroy({ where: { id } }, { transaction: t });
-    
-    await t.commit();
-    console.log(`✅ Deleted income ${id} for user ${userId}`);
-    
-    return res.status(200).json({ message: `Income with id ${id} deleted.` });
-  } catch(err) {
-    await t.rollback();
-    console.error("DELETE INCOME ERROR:", err);
-    res.status(500).json({error: "Error deleting income"});
-  }
-};
-
-// Update income
-const updateIncome = async (req, res) => {
-  const t = await sequelize.transaction();
-
-  try {
-    const {id} = req.params;
-    const userId = req.user && req.user.userId;
-    if (!userId) {
-      await t.rollback();
-      return res.status(401).json({ error: 'Unauthorized' });
-    }
-
-    const income = await Income.findOne({ where: { id }, transaction: t });
-    if (!income) {
-      await t.rollback();
-      return res.status(404).json({ message: "Income not found" });
-    }
-
-    if (income.userId !== userId) {
-      await t.rollback();
-      return res.status(403).json({ error: 'Forbidden' });
-    }
-
-    const result = await Income.update(req.body, { where: { id } }, { transaction: t });
-    if (result[0] === 0) {
-      await t.rollback();
-      return res.status(400).json({ message: "No changes applied" });
-    }
-    
-    await t.commit();
-    res.json({message: `Income with id ${id} successfully updated.`});
-  } catch(err) {
-    await t.rollback();
-    console.error("UPDATE INCOME ERROR:", err);
-    res.status(500).json({error: "Error updating income"});
-  }
-};
-
 module.exports = {
   addExpense, 
   getExpenses, 
@@ -485,9 +308,5 @@ module.exports = {
   getLeaderboard, 
   suggestCategory, 
   getInsights, 
-  recalculateTotals,
-  addIncome,
-  getIncomes,
-  deleteIncome,
-  updateIncome
+  recalculateTotals
 };
