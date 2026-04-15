@@ -10,32 +10,36 @@ const passwordRoutes = require("./Routes/passwordRoutes");
 const sequelize = require("./Utils/util");
 const Signup = require("./Models/signupModel");
 const Expense = require("./Models/expenseModel");
+const Income = require("./Models/incomeModel");
 const Order = require("./Models/orderModel");
 const ForgotPasswordRequests = require("./Models/forgotPasswordRequests");
 
 const app = express();
 
-// ✅ Middleware
+// Middleware
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// ✅ Associations
-Signup.hasMany(Expense, { foreignKey: 'userId' });
-Expense.belongsTo(Signup, { foreignKey: 'userId' });
+// Associations
+Signup.hasMany(Expense, { foreignKey: "userId" });
+Expense.belongsTo(Signup, { foreignKey: "userId" });
 
-Signup.hasMany(Order, { foreignKey: 'userId' });
-Order.belongsTo(Signup, { foreignKey: 'userId' });
+Signup.hasMany(Income, { foreignKey: "userId" });
+Income.belongsTo(Signup, { foreignKey: "userId" });
 
-Signup.hasMany(ForgotPasswordRequests, { foreignKey: 'userId' });
-ForgotPasswordRequests.belongsTo(Signup, { foreignKey: 'userId' });
+Signup.hasMany(Order, { foreignKey: "userId" });
+Order.belongsTo(Signup, { foreignKey: "userId" });
 
-// ✅ API Routes first
+Signup.hasMany(ForgotPasswordRequests, { foreignKey: "userId" });
+ForgotPasswordRequests.belongsTo(Signup, { foreignKey: "userId" });
+
+// API Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/payment", paymentRoutes);
 app.use("/api/password", passwordRoutes);
 
-// ✅ Page Routes
+// Page Routes
 app.get("/", (req, res) => {
     res.sendFile(path.join(__dirname, "View", "signup.html"));
 });
@@ -65,38 +69,25 @@ app.get("/password/resetpassword/:id", (req, res) => {
 });
 
 app.get("/tracker", (req, res) => {
-    res.sendFile(path.join(__dirname, "public", "tracker.html"));
+    res.sendFile(path.join(__dirname, "public", "dist", "index.html"));
 });
 
-// ✅ Static files LAST (after all routes)
+// Static files
 app.use(express.static(path.join(__dirname, "public")));
+app.use("/tracker", express.static(path.join(__dirname, "public", "dist")));
 app.use(express.static(path.join(__dirname, "View")));
 
-// ✅ Database sync
-sequelize.sync({ alter: true }).then(async () => {
-    console.log('Database synced successfully');
+// Database sync
+sequelize
+    .sync({ alter: true })
+    .then(() => {
+        console.log("Database synced successfully");
 
-    const port = process.env.PORT || 3000;
-    app.listen(port, () => {
-        console.log(`Server running at http://localhost:${port}`);
+        const port = process.env.PORT || 3000;
+        app.listen(port, () => {
+            console.log(`Server running at http://localhost:${port}`);
+        });
+    })
+    .catch((err) => {
+        console.error("Database sync failed:", err.message);
     });
-}).catch(async (err) => {
-    if (err.code === 'ER_TOO_MANY_KEYS' || err.parent?.code === 'ER_TOO_MANY_KEYS') {
-        console.log('Detected too many indexes. Retrying sync without alter...');
-        try {
-            await sequelize.sync({ alter: false });
-            console.log('Database synced successfully (without alter)');
-
-            const port = process.env.PORT || 3000;
-            app.listen(port, () => {
-                console.log(`Server running at http://localhost:${port}`);
-            });
-        } catch (retryErr) {
-            console.error('Database sync retry failed:', retryErr);
-            process.exit(1);
-        }
-    } else {
-        console.error('Database sync failed:', err);
-        process.exit(1);
-    }
-});
