@@ -995,6 +995,7 @@
         editBtn.style.marginRight = '5px';
   
         editBtn.addEventListener('click', function() {
+          console.log('Edit button clicked for item:', item.id);
           startInlineEdit(item, li);
         });
   
@@ -1075,6 +1076,8 @@
 
     // Inline Edit entry - converts row to editable mode with prominent input bar
     function startInlineEdit(item, rowElement) {
+      console.log('📝 startInlineEdit called for item:', item.id);
+      
       // Cancel any existing edit first
       if (currentlyEditingId) {
         cancelInlineEdit();
@@ -1201,6 +1204,7 @@
         description: newDescription
       }).then((response) => {
         console.log('Update response:', response.data);
+        
         // Update local data without full refresh
         const oldAmount = parseFloat(item.amount || 0);
         item.amount = newAmount;
@@ -1214,6 +1218,9 @@
 
         currentlyEditingId = null;
         showToast('✅ Entry updated successfully!', 'success');
+        
+        // Refresh to ensure consistency
+        fetchAndRenderEntries();
       }).catch(err => {
         console.error('Update failed:', err.response?.data || err.message);
         showToast('Update failed: ' + (err.response?.data?.error || 'Unknown error'), 'error');
@@ -1290,13 +1297,16 @@
       
       const editBtn = document.createElement('button');
       editBtn.textContent = '✏️ Edit';
+      editBtn.dataset.id = item.id;
       editBtn.style.cssText = 'background: #fff; border: 1px solid #e3e8ee; padding: 6px 8px; border-radius: 6px; cursor: pointer; margin-right: 5px;';
       editBtn.addEventListener('click', function() {
+        console.log('Edit button clicked for item:', item.id);
         startInlineEdit(item, rowElement);
       });
 
       const delBtn = document.createElement('button');
       delBtn.textContent = '🗑️ Delete';
+      delBtn.dataset.id = item.id;
       delBtn.style.cssText = 'background: #fff; border: 1px solid #e3e8ee; padding: 6px 8px; border-radius: 6px; cursor: pointer;';
       delBtn.addEventListener('click', async function() {
         if (!confirm(`Delete entry $${Number(item.amount || 0).toFixed(2)}?`)) return;

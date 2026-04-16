@@ -165,7 +165,8 @@ const updateExpense = async (req, res) => {
       }, { transaction: t });
     }
 
-    const result = await Expense.update(req.body, { where: { id } }, { transaction: t });
+    const result = await Expense.update(req.body, { where: { id }, transaction: t });
+    console.log('📝 Update result:', result, 'for id:', id, 'body:', req.body);
     if (result[0] === 0) {
       await t.rollback();
       return res.status(400).json({ message: "No changes applied" });
