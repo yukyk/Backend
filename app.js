@@ -41,45 +41,24 @@ app.use("/api/password", passwordRoutes);
 
 // Page Routes
 app.get("/", (req, res) => {
-    res.sendFile(path.join(__dirname, "View", "signup.html"));
-});
-
-app.get("/signup", (req, res) => {
-    res.sendFile(path.join(__dirname, "View", "signup.html"));
-});
-
-app.get("/login", (req, res) => {
     res.sendFile(path.join(__dirname, "View", "login.html"));
-});
-
-app.get("/expense", (req, res) => {
-    res.sendFile(path.join(__dirname, "View", "expense.html"));
-});
-
-app.get("/payment-options", (req, res) => {
-    res.sendFile(path.join(__dirname, "View", "payment-options.html"));
-});
-
-app.get("/reset-password", (req, res) => {
-    res.sendFile(path.join(__dirname, "View", "reset-password.html"));
 });
 
 app.get("/password/resetpassword/:id", (req, res) => {
     res.sendFile(path.join(__dirname, "View", "reset-password.html"));
 });
 
-app.get("/tracker", (req, res) => {
-    res.sendFile(path.join(__dirname, "public", "dist", "index.html"));
+app.get("/expense", (req, res) => {
+    res.sendFile(path.join(__dirname, "View", "expense.html"));
 });
 
 // Static files
 app.use(express.static(path.join(__dirname, "public")));
-app.use("/tracker", express.static(path.join(__dirname, "public", "dist")));
 app.use(express.static(path.join(__dirname, "View")));
 
 // Database sync
 sequelize
-    .sync({ alter: true })
+    .sync()
     .then(() => {
         console.log("Database synced successfully");
 

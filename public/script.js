@@ -71,6 +71,26 @@ function checkAuth() {
 // Make checkAuth available globally
 window.checkAuth = checkAuth;
 
+function isPremiumUser() {
+  const token = getToken();
+  if (!token) return false;
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    return payload.isPremium === true || payload.isPremium === 1;
+  } catch (e) {
+    return false;
+  }
+}
+
+function applyPremiumBackground() {
+  if (isPremiumUser()) {
+    document.body.style.background = 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)';
+  }
+}
+
+window.isPremiumUser = isPremiumUser;
+window.applyPremiumBackground = applyPremiumBackground;
+
 function logout() {
   localStorage.removeItem('token');
   window.location.href = '/login';
@@ -389,5 +409,6 @@ document.addEventListener('DOMContentLoaded', function() {
   // Initial load
   if (checkAuth()) {
     fetchExpenses();
+    applyPremiumBackground();
   }
 });

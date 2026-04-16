@@ -12,7 +12,6 @@ exports.forgotPassword = async (req, res) => {
   const t = await sequelize.transaction();
 
   try {
-    console.log('🔑 Forgot password request for:', email);
 
     if (!email) {
       await t.rollback();
@@ -66,8 +65,6 @@ exports.forgotPassword = async (req, res) => {
 
     // Log the reset URL (since email might not work)
     const resetUrl = `${process.env.BASE_URL}/password/resetpassword/${resetRequest.id}`;
-    console.log('📧 Password reset URL:', resetUrl);
-    console.log('📧 (In production, this would be sent via email)');
 
     // Try to send email, but don't fail if it doesn't work
     try {

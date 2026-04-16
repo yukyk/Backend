@@ -6,9 +6,6 @@ const jwt = require("jsonwebtoken");
 exports.signup = async (req, res) => {
     const t = await sequelize.transaction();
     try {
-      console.log("🔥 SIGNUP API HIT 🔥");
-      console.log("BODY:", req.body);
-      
       const { name, email, phone, password } = req.body;
 
       if (!name || !email || !phone || !password) {
@@ -39,22 +36,14 @@ exports.signup = async (req, res) => {
 
 function generateAccessToken(id, isPremium, premiumTier = 0) {
   const secret = process.env.JWT_SECRET;
-  if (!secret) {
-    throw new Error('JWT_SECRET not set in .env');
-  }
   // token contains userId, isPremium, and premiumTier
-  const token = jwt.sign({ userId: id, isPremium: isPremium, premiumTier: premiumTier }, secret, { expiresIn: '7d' });
-  console.log('✅ Token generated for userId:', id, 'isPremium:', isPremium, 'premiumTier:', premiumTier);
-  console.log('✅ Token preview:', token.substring(0, 50) + '...');
-  console.log('✅ Token expiry: 7 days');
-  return token;
+  return jwt.sign({ userId: id, isPremium: isPremium, premiumTier: premiumTier }, secret, { expiresIn: '7d' });
+
 }
 
 exports.login = async (req, res) => {
     try{
       const { email, password } = req.body;
-
-      console.log('🔐 LOGIN REQUEST - Email:', email);
 
     if (!email || !password) {
         return res.status(400).json({ message: "Email and password required" });
@@ -63,24 +52,19 @@ exports.login = async (req, res) => {
     const user = await User.findOne({ where: { email } });
 
     if (!user) {
-        console.log('❌ User not found:', email);
         return res.status(401).json({ message: "User not found" });
     }
   
     const isMatched = await bcrypt.compare(password, user.password);
-    if(!isMatched){
-      console.log('❌ Password mismatch for user:', email);
-      return res.status(404).json({ message: "Incorrect password" });
+    if (!isMatched) {
+      return res.status(401).json({ message: "Incorrect password" });
     }
-    
-    console.log('✅ Password matched for user:', email);
+  
     
     // Return JWT token (frontend must send as `Authorization: Bearer <token>`)
     const token = generateAccessToken(user.id, user.isPremium, user.premiumTier || 0);
-    console.log('✅ Login successful - token sent to client');
     res.status(200).json({ message: "Login successful", token });
     } catch(err){
-      console.error('❌ Login error:', err);
       return res.status(500).json({ message: "Internal server error" });
     }
 };

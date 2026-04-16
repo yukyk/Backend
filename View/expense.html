@@ -136,10 +136,6 @@
       background-clip: text;
     }
 
-    body.premium-user .category-tab.active {
-      background: linear-gradient(135deg, #667eea, #764ba2);
-    }
-
     /* Premium Star Indicator */
     .premium-star-indicator {
       position: fixed;
@@ -340,76 +336,6 @@
       0% { transform: scale(1); }
       50% { transform: scale(1.15); }
       100% { transform: scale(1); }
-    }
-
-    /* Category Tabs */
-    .category-tabs {
-      display: flex;
-      gap: 10px;
-      margin-bottom: 20px;
-      border-bottom: 2px solid #e3e8ee;
-      padding-bottom: 10px;
-    }
-
-    .category-tab {
-      padding: 10px 20px;
-      border: none;
-      background: #f8f9fa;
-      border-radius: 8px 8px 0 0;
-      cursor: pointer;
-      font-weight: 600;
-      color: #6b7385;
-      transition: all 0.3s ease;
-    }
-
-    .category-tab.active {
-      background: #635BFF;
-      color: white;
-    }
-
-    .category-tab:hover:not(.active) {
-      background: #e3e8ee;
-    }
-
-    /* Time Period Filters */
-    .filter-section {
-      display: flex;
-      gap: 15px;
-      margin-bottom: 20px;
-      align-items: center;
-      flex-wrap: wrap;
-    }
-
-    .filter-group {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .filter-label {
-      font-weight: 600;
-      color: #1a1f36;
-    }
-
-    .filter-btn {
-      padding: 8px 16px;
-      border: 2px solid #e3e8ee;
-      background: white;
-      border-radius: 6px;
-      cursor: pointer;
-      font-weight: 500;
-      color: #6b7385;
-      transition: all 0.3s ease;
-    }
-
-    .filter-btn.active {
-      border-color: #635BFF;
-      background: #635BFF;
-      color: white;
-    }
-
-    .filter-btn:hover:not(.active) {
-      border-color: #635BFF;
     }
 
     /* Summary Cards */
@@ -685,35 +611,6 @@
         </div>
       </div>
 
-      <!-- Category Tabs -->
-      <div class="category-tabs">
-        <button class="category-tab active" onclick="setCategory('daily')" id="dailyTab">
-          📅 Daily
-        </button>
-        <button class="category-tab" onclick="setCategory('monthly')" id="monthlyTab">
-          📆 Monthly
-        </button>
-        <button class="category-tab" onclick="setCategory('yearly')" id="yearlyTab">
-          📊 Yearly
-        </button>
-      </div>
-
-      <!-- Time Period Filters -->
-      <div class="filter-section">
-        <div class="filter-group">
-          <span class="filter-label">View:</span>
-          <button class="filter-btn active" onclick="setTimeFilter('daily')" id="dailyFilter">Daily</button>
-          <button class="filter-btn" onclick="setTimeFilter('weekly')" id="weeklyFilter">Weekly</button>
-          <button class="filter-btn" onclick="setTimeFilter('monthly')" id="monthlyFilter">Monthly</button>
-        </div>
-        <div class="date-range">
-          <input type="date" id="startDate" class="date-input">
-          <span>to</span>
-          <input type="date" id="endDate" class="date-input">
-          <button class="filter-btn" onclick="applyDateFilter()">Apply</button>
-        </div>
-      </div>
-
       <!-- Expense Form Section -->
       <div id="expenseFormSection" class="form-section active" style="display: block !important;">
         <form id="expenseForm" class="login-form" style="display: block !important;">
@@ -747,9 +644,16 @@
       <!-- Expense/Income List -->
       <div class="expense-section">
         <h2 class="expense-section-title" id="listTitle">
-          📅 Today's Expenses
+          📋 All Expenses
         </h2>
         <div style="display: flex; justify-content: flex-end; align-items: center; gap: 10px; margin-bottom: 15px;">
+          <label for="categoryFilter" style="font-weight: 600; color: #6b7385;">Filter:</label>
+          <select id="categoryFilter" onchange="changeCategoryFilter()" style="padding: 8px 12px; border: 2px solid #e3e8ee; border-radius: 6px; font-size: 14px; cursor: pointer;">
+            <option value="daily">Today</option>
+            <option value="monthly">This Month</option>
+            <option value="yearly">This Year</option>
+            <option value="all">All Time</option>
+          </select>
           <label for="itemsPerPage" style="font-weight: 600; color: #6b7385;">Show:</label>
           <select id="itemsPerPage" onchange="changeItemsPerPage()" style="padding: 8px 12px; border: 2px solid #e3e8ee; border-radius: 6px; font-size: 14px; cursor: pointer;">
             <option value="5">5 items</option>
@@ -806,6 +710,25 @@
       localStorage.setItem('expensesPerPage', itemsPerPage);
       currentPage = 1;
       renderEntries(allExpenses);
+    }
+
+    // Change category filter
+    function changeCategoryFilter() {
+      currentCategory = document.getElementById('categoryFilter').value;
+      currentPage = 1;
+      renderEntries(allExpenses);
+      updateListTitle();
+    }
+
+    // Update list title based on filters
+    function updateListTitle() {
+      const titles = {
+        'daily': '📋 Today\'s Expenses',
+        'monthly': '📋 This Month\'s Expenses',
+        'yearly': '📋 This Year\'s Expenses',
+        'all': '📋 All Expenses'
+      };
+      document.getElementById('listTitle').textContent = titles[currentCategory] || '📋 All Expenses';
     }
 
     // Check and update premium status
@@ -899,78 +822,6 @@
       }
     }
 
-    // Set category tab
-    function setCategory(category) {
-      currentCategory = category;
-      
-      // Update tab styles
-      document.querySelectorAll('.category-tab').forEach(tab => tab.classList.remove('active'));
-      document.getElementById(category + 'Tab').classList.add('active');
-      
-      // Refresh the list
-      fetchAndRenderEntries();
-    }
-
-    // Set time filter
-    function setTimeFilter(filter) {
-      currentTimeFilter = filter;
-      
-      // Update button styles
-      document.querySelectorAll('.filter-btn').forEach(btn => {
-        if (['daily', 'weekly', 'monthly'].some(f => btn.textContent.toLowerCase().includes(f))) {
-          btn.classList.remove('active');
-        }
-      });
-      
-      const filterBtn = document.getElementById(filter + 'Filter');
-      if (filterBtn) filterBtn.classList.add('active');
-      
-      // Set date range based on filter
-      setDateRangeFromFilter(filter);
-      
-      // Refresh the list
-      fetchAndRenderEntries();
-    }
-
-    // Set date range based on filter
-    function setDateRangeFromFilter(filter) {
-      const today = new Date();
-      let startDate, endDate;
-      
-      switch(filter) {
-        case 'daily':
-          startDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-          endDate = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59);
-          break;
-        case 'weekly':
-          const dayOfWeek = today.getDay();
-          startDate = new Date(today);
-          startDate.setDate(today.getDate() - dayOfWeek);
-          startDate.setHours(0, 0, 0, 0);
-          endDate = new Date(startDate);
-          endDate.setDate(startDate.getDate() + 6);
-          endDate.setHours(23, 59, 59, 999);
-          break;
-        case 'monthly':
-          startDate = new Date(today.getFullYear(), today.getMonth(), 1);
-          endDate = new Date(today.getFullYear(), today.getMonth() + 1, 0, 23, 59, 59, 999);
-          break;
-      }
-      
-      document.getElementById('startDate').value = formatDate(startDate);
-      document.getElementById('endDate').value = formatDate(endDate);
-    }
-
-    // Format date for input
-    function formatDate(date) {
-      return date.toISOString().split('T')[0];
-    }
-
-    // Apply custom date filter
-    function applyDateFilter() {
-      fetchAndRenderEntries();
-    }
-
     // Set view type (expense/income) - simplified to expense only
     function setViewType(type) {
       currentViewType = type;
@@ -984,13 +835,7 @@
       if (!token) return;
 
       try {
-        const startDate = document.getElementById('startDate').value;
-        const endDate = document.getElementById('endDate').value;
-
-        // Fetch expenses
-        const expenseRes = await axios.get('/api/auth/get-expenses', {
-          params: { startDate, endDate }
-        });
+        const expenseRes = await axios.get('/api/auth/get-expenses');
         allExpenses = expenseRes.data || [];
 
         // Calculate total
@@ -1003,17 +848,6 @@
       } catch (err) {
         console.error('Error fetching entries:', err);
       }
-    }
-
-    // Update list title based on filters
-    function updateListTitle() {
-      const titles = {
-        daily: "📅 Today's Expenses",
-        weekly: '📆 This Week\'s Expenses',
-        monthly: '📆 This Month\'s Expenses',
-        yearly: '📊 This Year\'s Expenses'
-      };
-      document.getElementById('listTitle').textContent = titles[currentTimeFilter] || titles.daily;
     }
 
     // Render entries list
@@ -1032,12 +866,13 @@
         return;
       }
 
-      // Filter by category (daily = today, monthly = this month, yearly = this year)
-      filteredItemsData = filterByCategory(items);
+      // Apply category filter before rendering
+      const filteredItems = filterByCategory(items);
+      filteredItemsData = filteredItems;
       
       if (filteredItemsData.length === 0) {
         const empty = document.createElement('li');
-        empty.textContent = 'No ' + currentCategory + ' entries found';
+        empty.textContent = 'No expenses found';
         empty.style.color = '#8792a2';
         empty.style.padding = '20px';
         empty.style.textAlign = 'center';
@@ -1211,6 +1046,10 @@
       const now = new Date();
       const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
       
+      if (currentCategory === 'all') {
+        return items;
+      }
+      
       return items.filter(item => {
         const itemDate = new Date(item.createdAt);
         
@@ -1337,7 +1176,10 @@
       const descInput = rowElement.querySelector('.inline-edit-desc');
       const amtInput = rowElement.querySelector('.inline-edit-amount');
       
-      if (!descInput || !amtInput) return;
+      if (!descInput || !amtInput) {
+        console.error('Edit inputs not found');
+        return;
+      }
 
       const newAmount = parseFloat(amtInput.value);
       const newDescription = descInput.value.trim();
@@ -1352,10 +1194,13 @@
         return;
       }
 
+      console.log('Updating expense:', item.id, { amount: newAmount, description: newDescription });
+      
       axios.put(`/api/auth/update-expense/${item.id}`, {
         amount: newAmount,
         description: newDescription
-      }).then(() => {
+      }).then((response) => {
+        console.log('Update response:', response.data);
         // Update local data without full refresh
         const oldAmount = parseFloat(item.amount || 0);
         item.amount = newAmount;
@@ -1370,6 +1215,7 @@
         currentlyEditingId = null;
         showToast('✅ Entry updated successfully!', 'success');
       }).catch(err => {
+        console.error('Update failed:', err.response?.data || err.message);
         showToast('Update failed: ' + (err.response?.data?.error || 'Unknown error'), 'error');
         cancelInlineEdit();
       });
@@ -1584,13 +1430,10 @@
     window.showLeaderboard = showLeaderboard;
     window.closeModal = closeModal;
     window.checkPremiumStatus = checkPremiumStatus;
-    window.setCategory = setCategory;
-    window.setTimeFilter = setTimeFilter;
     window.setViewType = setViewType;
     window.changeItemsPerPage = changeItemsPerPage;
     window.nextPage = nextPage;
     window.prevPage = prevPage;
-    window.applyDateFilter = applyDateFilter;
     window.handleInsights = handleInsights;
 
     // Initialize on page load
@@ -1598,7 +1441,6 @@
       setTimeout(() => {
         if (checkAuth()) {
           checkPremiumStatus();
-          setDateRangeFromFilter('daily');
           fetchAndRenderEntries();
         }
       }, 100);

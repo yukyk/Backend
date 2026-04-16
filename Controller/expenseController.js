@@ -5,31 +5,22 @@ const { Op } = require('sequelize');
 
 // Create expense for the authenticated user
 const addExpense = async (req, res) => {
-  console.log('🌐 POST /add-expense - Body:', req.body);
-  console.log('👤 req.user:', req.user);
-  
   try {
     let { amount, description, category, note } = req.body;
 
-    console.log('📥 Parsed input:', { amount, description, category, note });
-
     if (!amount || !description) {
-      console.log('❌ Missing required fields');
       return res.status(400).json({ error: "Amount and description are required" });
     }
 
     // Ensure amount is a number
     amount = parseFloat(amount);
     if (isNaN(amount) || amount <= 0) {
-      console.log('❌ Invalid amount:', amount);
       return res.status(400).json({ error: "Amount must be a valid positive number" });
     }
 
     const userId = req.user && req.user.userId;
-    console.log('🔑 Using userId:', userId);
     
     if (!userId) {
-      console.log('❌ No userId from auth');
       return res.status(401).json({ error: 'Unauthorized - no userId' });
     }
 
@@ -56,46 +47,24 @@ const addExpense = async (req, res) => {
       { where: { id: userId } }
     );
 
-    console.log(`✅ Expense created - User ${userId}: $${amount} (${expense.id})`);
-
     res.status(201).json(expense);
   } catch (err) {
-    console.error("ADD EXPENSE ERROR:", err);
     res.status(500).json({ error: err.message });
   }
 };
 
 // Get expenses belonging to authenticated user
 const getExpenses = async (req, res) => {
-  console.log('🌐 GET /get-expenses - req.user:', req.user);
-  console.log('📅 Query params:', req.query);
   
   try {
     const userId = req.user && req.user.userId;
-    console.log('🔑 Querying expenses for userId:', userId);
     
     if (!userId) {
-      console.log('❌ No userId for getExpenses');
+
       return res.status(401).json({ error: 'Unauthorized - no userId' });
     }
 
-    const { startDate, endDate } = req.query;
-    let whereClause = { userId };
-
-    // Add date filtering if provided
-    if (startDate && endDate) {
-      whereClause.createdAt = {
-        [Op.between]: [new Date(startDate), new Date(endDate + 'T23:59:59.999Z')]
-      };
-    } else if (startDate) {
-      whereClause.createdAt = {
-        [Op.gte]: new Date(startDate)
-      };
-    } else if (endDate) {
-      whereClause.createdAt = {
-        [Op.lte]: new Date(endDate + 'T23:59:59.999Z')
-      };
-    }
+    const whereClause = { userId };
 
     const expenses = await Expense.findAll({ 
       where: whereClause,
@@ -108,26 +77,22 @@ const getExpenses = async (req, res) => {
       entryType: 'expense'
     }));
     
-    console.log(`✅ QUERY SUCCESS - Found ${expensesWithType.length} expenses for user ${userId}`);
+    
     res.json(expensesWithType);
   } catch(err) {
-    console.error('GET EXPENSES ERROR:', err);
     res.status(500).json({error: "Error fetching expenses"});
   }
 };
 
 // Delete expense
 const deleteExpense = async (req, res) => {
-  console.log('🗑️ DELETE /delete-expense/' + req.params.id);
-  console.log('👤 req.user:', req.user);
   
   const t = await sequelize.transaction();
 
   try {
     const {id} = req.params;
     const userId = req.user && req.user.userId;
-    
-    console.log('🔑 Delete check - userId:', userId, 'expenseId:', id);
+  
     
     if (!userId) {
       await t.rollback();
@@ -138,39 +103,31 @@ const deleteExpense = async (req, res) => {
     const expense = await Expense.findOne({ where: { id }, transaction: t });
     if (!expense) {
       await t.rollback();
-      console.log(`❌ Expense ${id} not found`);
       return res.status(404).json({ message: `Expense with id ${id} not found.` });
     }
 
-    console.log('📋 Found expense:', expense.toJSON());
-
     if (expense.userId !== userId) {
       await t.rollback();
-      console.log(`❌ User ${userId} cannot delete expense ${expense.userId}`);
       return res.status(403).json({ error: 'Forbidden - not your expense' });
     }
 
     // Validate amount before decrement
     const amount = parseFloat(expense.amount) || 0;
-    console.log(`💰 Decrementing totalExpense by $${amount}`);
     
     if (amount > 0) {
       const result = await Signup.decrement('totalExpense', {
         by: amount,
         where: { id: userId }
       }, { transaction: t });
-      console.log('📉 totalExpense decrement result:', result);
     }
 
     await Expense.destroy({ where: { id } }, { transaction: t });
     
     await t.commit();
-    console.log(`✅ Deleted expense ${id} for user ${userId}`);
     
     return res.status(200).json({ message: `Expense with id ${id} deleted.` });
   } catch(err) {
     await t.rollback();
-    console.error("DELETE EXPENSE ERROR:", err);
     res.status(500).json({error: "Error deleting expense"});
   }
 };
@@ -218,7 +175,6 @@ const updateExpense = async (req, res) => {
     res.json({message: `Expense with id ${id} successfully updated.`});
   } catch(err) {
     await t.rollback();
-    console.error("UPDATE EXPENSE ERROR:", err);
     res.status(500).json({error: "Error updating expense"});
   }
 };
@@ -243,8 +199,6 @@ const getLeaderboard = async (req, res) => {
       where: { totalExpense: { [Op.gt]: 0 } },
       order: [['totalExpense', 'DESC']]
     });
-
-    console.log(`✅ Leaderboard fetched - Found ${leaderboard.length} users with expenses:`, leaderboard.map(u => ({ id: u.id, name: u.name, total: u.totalExpense })));
 
     res.json(leaderboard);
   } catch (err) {
