@@ -64,7 +64,8 @@ exports.forgotPassword = async (req, res) => {
     await t.commit();
 
     // Log the reset URL (since email might not work)
-    const resetUrl = `${process.env.BASE_URL}/password/resetpassword/${resetRequest.id}`;
+    const baseUrl = process.env.BASE_URL || `http://localhost:${process.env.PORT || 3000}`;
+    const resetUrl = `${baseUrl}/password/resetpassword/${resetRequest.id}`;
 
     // Try to send email, but don't fail if it doesn't work
     try {
@@ -273,9 +274,10 @@ exports.resendResetEmail = async (req, res) => {
     }
 
     const expiresIn = Math.ceil((new Date(resetRequest.expiresAt).getTime() - Date.now()) / 60000);
+    const baseUrl = process.env.BASE_URL || `http://localhost:${process.env.PORT || 3000}`;
     res.status(200).json({ 
       message: "Reset email resent. Check inbox/spam.",
-      resetUrl: `${process.env.BASE_URL}/password/resetpassword/${resetRequest.id}`,
+      resetUrl: `${baseUrl}/password/resetpassword/${resetRequest.id}`,
       expiresIn: expiresIn + " minutes"
     });
 
