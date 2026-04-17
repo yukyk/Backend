@@ -44,6 +44,10 @@ app.get("/", (req, res) => {
     res.sendFile(path.join(__dirname, "View", "login.html"));
 });
 
+app.get("/signup", (req, res) => {
+    res.sendFile(path.join(__dirname, "View", "signup.html"));
+});
+
 app.get("/password/resetpassword/:id", (req, res) => {
     res.sendFile(path.join(__dirname, "View", "reset-password.html"));
 });
