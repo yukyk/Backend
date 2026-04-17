@@ -21,7 +21,7 @@ async function sendResetEmail(toEmail, requestId) {
   ];
 
   // Use UUID-based reset URL
-  const resetUrl = `http://localhost:3000/password/resetpassword/${requestId}`;
+  const resetUrl = `${process.env.BASE_URL}/password/resetpassword/${requestId}`;
 
   const sendSmtpEmail = {
     sender,
