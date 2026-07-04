@@ -1,7 +1,5 @@
 const Expense = require('../Models/expenseModel');
 const Signup = require('../Models/signupModel');
-const sequelize = require('../Utils/util');
-const { Op } = require('sequelize');
 
 // Create expense for the authenticated user
 const addExpense = async (req, res) => {
@@ -24,7 +22,6 @@ const addExpense = async (req, res) => {
       return res.status(401).json({ error: 'Unauthorized - no userId' });
     }
 
-    // Simplify - no transaction to avoid lock issues
     const expense = await Expense.create({
       amount,
       description,
@@ -35,16 +32,16 @@ const addExpense = async (req, res) => {
     });
     
     console.log('💾 Expense CREATED:', {
-      id: expense.id,
+      id: expense._id,
       amount,
       userId,
       description: description.substring(0, 30) + '...'
     });
 
     // Update user total
-    await Signup.update(
-      { totalExpense: sequelize.literal('totalExpense + ' + amount) },
-      { where: { id: userId } }
+    await Signup.updateOne(
+      { _id: userId },
+      { $inc: { totalExpense: amount } }
     );
 
     res.status(201).json(expense);
@@ -64,16 +61,12 @@ const getExpenses = async (req, res) => {
       return res.status(401).json({ error: 'Unauthorized - no userId' });
     }
 
-    const whereClause = { userId };
-
-    const expenses = await Expense.findAll({ 
-      where: whereClause,
-      order: [['createdAt', 'DESC']]
-    });
+    const expenses = await Expense.find({ userId })
+      .sort({ createdAt: -1 });
     
     // Add entryType field to each expense
     const expensesWithType = expenses.map(e => ({
-      ...e.toJSON(),
+      ...e.toObject(),
       entryType: 'expense'
     }));
     
@@ -86,28 +79,21 @@ const getExpenses = async (req, res) => {
 
 // Delete expense
 const deleteExpense = async (req, res) => {
-  
-  const t = await sequelize.transaction();
-
   try {
     const {id} = req.params;
     const userId = req.user && req.user.userId;
-  
-    
+
     if (!userId) {
-      await t.rollback();
       console.log('❌ No userId for delete');
       return res.status(401).json({ error: 'Unauthorized - no userId' });
     }
 
-    const expense = await Expense.findOne({ where: { id }, transaction: t });
+    const expense = await Expense.findOne({ _id: id });
     if (!expense) {
-      await t.rollback();
       return res.status(404).json({ message: `Expense with id ${id} not found.` });
     }
 
-    if (expense.userId !== userId) {
-      await t.rollback();
+    if (expense.userId.toString() !== userId) {
       return res.status(403).json({ error: 'Forbidden - not your expense' });
     }
 
@@ -115,43 +101,36 @@ const deleteExpense = async (req, res) => {
     const amount = parseFloat(expense.amount) || 0;
     
     if (amount > 0) {
-      const result = await Signup.decrement('totalExpense', {
-        by: amount,
-        where: { id: userId }
-      }, { transaction: t });
+      await Signup.updateOne(
+        { _id: userId },
+        { $inc: { totalExpense: -amount } }
+      );
     }
 
-    await Expense.destroy({ where: { id } }, { transaction: t });
-    
-    await t.commit();
+    await Expense.deleteOne({ _id: id });
     
     return res.status(200).json({ message: `Expense with id ${id} deleted.` });
   } catch(err) {
-    await t.rollback();
+    console.log('🔴 DELETE ERROR:', err.message);
     res.status(500).json({error: "Error deleting expense"});
   }
 };
 
 // Update expense
 const updateExpense = async (req, res) => {
-  const t = await sequelize.transaction();
-
   try {
     const {id} = req.params;
     const userId = req.user && req.user.userId;
     if (!userId) {
-      await t.rollback();
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    const expense = await Expense.findOne({ where: { id }, transaction: t });
+    const expense = await Expense.findOne({ _id: id });
     if (!expense) {
-      await t.rollback();
       return res.status(404).json({ message: "Expense not found" });
     }
 
-    if (expense.userId !== userId) {
-      await t.rollback();
+    if (expense.userId.toString() !== userId) {
       return res.status(403).json({ error: 'Forbidden' });
     }
 
@@ -159,23 +138,20 @@ const updateExpense = async (req, res) => {
     let amountDiff = 0;
     if (req.body.amount && parseFloat(req.body.amount) !== expense.amount) {
       amountDiff = parseFloat(req.body.amount) - expense.amount;
-      await Signup.increment('totalExpense', {
-        by: amountDiff,
-        where: { id: userId }
-      }, { transaction: t });
+      await Signup.updateOne(
+        { _id: userId },
+        { $inc: { totalExpense: amountDiff } }
+      );
     }
 
-    const result = await Expense.update(req.body, { where: { id }, transaction: t });
+    const result = await Expense.updateOne({ _id: id }, req.body);
     console.log('📝 Update result:', result, 'for id:', id, 'body:', req.body);
-    if (result[0] === 0) {
-      await t.rollback();
+    if (result.modifiedCount === 0) {
       return res.status(400).json({ message: "No changes applied" });
     }
     
-    await t.commit();
     res.json({message: `Expense with id ${id} successfully updated.`});
   } catch(err) {
-    await t.rollback();
     res.status(500).json({error: "Error updating expense"});
   }
 };
@@ -189,17 +165,14 @@ const getLeaderboard = async (req, res) => {
     const userPremiumTier = req.user.premiumTier || 0;
     const userIsPremium = req.user.isPremium || false;
     
-    // Allow if premiumTier > 0 OR isPremium is true (backward compatibility)
     if (userPremiumTier === 0 && !userIsPremium) {
       return res.status(403).json({ error: 'Access denied. Premium membership required.' });
     }
 
-    // O(1) database lookup using indexed totalExpense field - no joins or aggregation needed
-    const leaderboard = await Signup.findAll({
-      attributes: ['id', 'name', 'totalExpense'],
-      where: { totalExpense: { [Op.gt]: 0 } },
-      order: [['totalExpense', 'DESC']]
-    });
+    const leaderboard = await Signup.find(
+      { totalExpense: { $gt: 0 } },
+      'name totalExpense'
+    ).sort({ totalExpense: -1 });
 
     res.json(leaderboard);
   } catch (err) {
@@ -210,7 +183,6 @@ const getLeaderboard = async (req, res) => {
 
 const aiService = require('../services/aiService');
 
-// AI-powered category suggestion (public endpoint - no auth needed for suggestion)
 const suggestCategory = async (req, res) => {
   try {
     const { description } = req.query;
@@ -225,15 +197,14 @@ const suggestCategory = async (req, res) => {
   }
 };
 
-// Premium-only AI insights (protected)
 const getInsights = async (req, res) => {
   try {
     const userId = req.user && req.user.userId;
     if (!req.user.isPremium) {
       return res.status(403).json({ error: 'Premium only' });
     }
-    const expenses = await Expense.findAll({ where: { userId } });
-    const user = await Signup.findByPk(userId);
+    const expenses = await Expense.find({ userId });
+    const user = await Signup.findById(userId);
     const insights = await aiService.generateInsights(expenses, user?.name || 'User');
     res.json({ insights });
   } catch (err) {
@@ -244,10 +215,15 @@ const getInsights = async (req, res) => {
 
 const recalculateTotals = async () => {
   try {
-    const users = await Signup.findAll();
+    const users = await Signup.find();
     for (const user of users) {
-      const totalExpense = await Expense.sum('amount', { where: { userId: user.id } }) || 0;
-      await user.update({ totalExpense });
+      const result = await Expense.aggregate([
+        { $match: { userId: user._id } },
+        { $group: { _id: null, total: { $sum: '$amount' } } }
+      ]);
+      const totalExpense = result[0]?.total || 0;
+      user.totalExpense = totalExpense;
+      await user.save();
     }
     console.log('✅ Recalculated totalExpense for all users');
   } catch (err) {

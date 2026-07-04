@@ -210,7 +210,7 @@ function createListItem(item, type) {
     
     try {
       const endpoint = type === 'income' ? '/api/auth/delete-income' : '/api/auth/delete-expense';
-      await axios.delete(`${endpoint}/${item.id}`);
+      await axios.delete(`${endpoint}/${item._id}`);
       if (typeof showToast === 'function') {
         showToast(`✅ ${type === 'income' ? 'Income' : 'Expense'} deleted!`, 'success');
       }

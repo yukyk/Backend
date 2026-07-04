@@ -1,45 +1,37 @@
-const { DataTypes } = require("sequelize");
-const sequelize = require("../Utils/util");
+const mongoose = require('mongoose');
 
-const Order = sequelize.define("Order", {
-    id: {
-        type: DataTypes.INTEGER,
-        primaryKey: true,
-        autoIncrement: true
-    },
-    orderId: {
-        type: DataTypes.STRING,
-        allowNull: false,
-        unique: true
-    },
-    userId: {
-        type: DataTypes.INTEGER,
-        allowNull: false,
-        references: {
-            model: 'signup',
-            key: 'id'
-        }
-    },
-    amount: {
-        type: DataTypes.FLOAT,
-        allowNull: false
-    },
-    status: {
-        type: DataTypes.STRING,
-        defaultValue: 'PENDING'
-    },
-    premiumTier: {
-        type: DataTypes.INTEGER,
-        defaultValue: 1,
-        comment: '1=basic, 2=plus, 3=elite'
-    },
-    paymentSessionId: {
-        type: DataTypes.STRING,
-        allowNull: true
-    }
+const Schema = mongoose.Schema;
+
+const orderSchema = new Schema({
+  orderId: {
+    type: String,
+    required: true,
+    unique: true
+  },
+  userId: {
+    type: Schema.Types.ObjectId,
+    ref: 'Signup',
+    required: true
+  },
+  amount: {
+    type: Number,
+    required: true
+  },
+  status: {
+    type: String,
+    default: 'PENDING'
+  },
+  premiumTier: {
+    type: Number,
+    default: 1
+    // 1=basic, 2=plus, 3=elite
+  },
+  paymentSessionId: {
+    type: String,
+    default: null
+  }
 }, {
-    tableName: "orders",
-    timestamps: true
+  timestamps: true
 });
 
-module.exports = Order;
+module.exports = mongoose.model('Order', orderSchema);

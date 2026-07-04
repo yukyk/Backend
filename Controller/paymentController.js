@@ -1,6 +1,5 @@
 const Order = require("../Models/orderModel");
 const Signup = require("../Models/signupModel");
-const sequelize = require("../Utils/util");
 const { createOrder, getPaymentStatus } = require("../services/cashFreeService");
 
 
@@ -17,7 +16,7 @@ exports.createPaymentOrder = async (req, res) => {
         if (!userId) return res.status(401).json({ error: 'Unauthorized' });
         if (!amount) return res.status(400).json({ error: 'Amount is required' });
 
-        const user = await Signup.findOne({ where: { id: userId } });
+        const user = await Signup.findById(userId);
         if (!user) return res.status(404).json({ error: 'User not found' });
 
         const orderId = generateOrderId();
@@ -28,8 +27,8 @@ exports.createPaymentOrder = async (req, res) => {
             amount: parseFloat(amount),
             status: 'PENDING'
         };
-        
-        if (Order.rawAttributes && Order.rawAttributes.premiumTier) {
+
+        if (premiumTier) {
             orderData.premiumTier = premiumTier;
         }
         
@@ -37,7 +36,7 @@ exports.createPaymentOrder = async (req, res) => {
 
         try {
             const paymentSessionId = await createOrder(orderId, amount, 'INR', userId.toString(), user.phone);
-            await Order.update({ paymentSessionId }, { where: { orderId } });
+            await Order.updateOne({ orderId }, { paymentSessionId });
 
             return res.status(201).json({ 
                 orderId, 
@@ -46,7 +45,7 @@ exports.createPaymentOrder = async (req, res) => {
                 premiumTier: premiumTier || 1
             });
         } catch (cashfreeError) {
-            await Order.update({ status: 'FAILED' }, { where: { orderId } });
+            await Order.updateOne({ orderId }, { status: 'FAILED' });
             return res.status(500).json({ error: 'Failed to create payment session', details: cashfreeError.message });
         }
 
@@ -64,9 +63,9 @@ exports.verifyPayment = async (req, res) => {
         if (!userId) return res.status(401).json({ error: 'Unauthorized' });
         if (!orderId) return res.status(400).json({ error: 'Order ID is required' });
 
-        const order = await Order.findOne({ where: { orderId } });
+        const order = await Order.findOne({ orderId });
         if (!order) return res.status(404).json({ error: 'Order not found' });
-        if (order.userId !== userId) return res.status(403).json({ error: 'Forbidden' });
+        if (order.userId.toString() !== userId) return res.status(403).json({ error: 'Forbidden' });
 
         // Check Cashfree for actual payment status
         try {
@@ -76,13 +75,13 @@ exports.verifyPayment = async (req, res) => {
             
             if (actualStatus === 'SUCCESS') {
                 // Update order status
-                await Order.update({ status: 'SUCCESSFUL' }, { where: { orderId } });
+                await Order.updateOne({ orderId }, { status: 'SUCCESSFUL' });
                 
                 // Update user to premium
                 const purchasedTier = order.premiumTier || 1;
-                await Signup.update(
-                    { isPremium: 1, premiumTier: purchasedTier },
-                    { where: { id: userId } }
+                await Signup.updateOne(
+                    { _id: userId },
+                    { isPremium: true, premiumTier: purchasedTier }
                 );
                 
             }
@@ -112,19 +111,19 @@ exports.updatePaymentStatus = async (req, res) => {
         if (!orderId || !status) return res.status(400).json({ error: 'Order ID and status required' });
         if (!['PENDING', 'SUCCESSFUL', 'FAILED'].includes(status)) return res.status(400).json({ error: 'Invalid status' });
 
-        const order = await Order.findOne({ where: { orderId } });
+        const order = await Order.findOne({ orderId });
         if (!order) return res.status(404).json({ error: 'Order not found' });
-        if (order.userId !== userId) return res.status(403).json({ error: 'Forbidden' });
+        if (order.userId.toString() !== userId) return res.status(403).json({ error: 'Forbidden' });
 
-        await order.update({ status });
+        order.status = status;
+        await order.save();
 
         if (status === 'SUCCESSFUL') {
-            const user = await Signup.findOne({ where: { id: userId } });
+            const user = await Signup.findById(userId);
             if (user) {
-                await user.update({ 
-                    isPremium: true,
-                    premiumTier: Math.max(user.premiumTier || 0, order.premiumTier || 1)
-                });
+                user.isPremium = true;
+                user.premiumTier = Math.max(user.premiumTier || 0, order.premiumTier || 1);
+                await user.save();
             }
         }
 
@@ -142,7 +141,7 @@ exports.getPaymentHistory = async (req, res) => {
         const userId = req.user && req.user.userId;
         if (!userId) return res.status(401).json({ error: 'Unauthorized' });
 
-        const orders = await Order.findAll({ where: { userId }, order: [['createdAt', 'DESC']] });
+        const orders = await Order.find({ userId }).sort({ createdAt: -1 });
         return res.status(200).json(orders);
     } catch (error) {
         return res.status(500).json({ error: error.message });
@@ -155,7 +154,7 @@ exports.getPremiumStatus = async (req, res) => {
         const userId = req.user && req.user.userId;
         if (!userId) return res.status(401).json({ error: 'Unauthorized' });
 
-        const user = await Signup.findOne({ where: { id: userId } });
+        const user = await Signup.findById(userId);
         if (!user) return res.status(404).json({ error: 'User not found' });
 
         return res.status(200).json({ isPremium: user.isPremium, premiumTier: user.premiumTier || 0 });

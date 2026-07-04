@@ -1,6 +1,5 @@
 const User = require("../Models/signupModel");
 const ForgotPasswordRequests = require("../Models/forgotPasswordRequests");
-const sequelize = require("../Utils/util");
 const bcrypt = require("bcrypt");
 
 const RESET_REQUEST_COOLDOWN = 5 * 60 * 1000; // 5 minutes cooldown between requests
@@ -9,39 +8,31 @@ const RESET_LINK_EXPIRY = 1 * 60 * 60 * 1000; // 1 hour expiry
 // Request password reset
 exports.forgotPassword = async (req, res) => {
   const { email } = req.body;
-  const t = await sequelize.transaction();
 
   try {
 
     if (!email) {
-      await t.rollback();
       return res.status(400).json({ message: "Email required" });
     }
 
-    const user = await User.findOne({ where: { email } });
+    const user = await User.findOne({ email });
 
     if (!user) {
-      await t.rollback();
       // Don't reveal if email exists (security)
       return res.status(200).json({ message: "If email exists, reset link sent (check spam)." });
     }
 
     // Check rate limit - find recent active request
     const recentRequest = await ForgotPasswordRequests.findOne({
-      where: {
-        userId: user.id,
-        isActive: true,
-        expiresAt: {
-          [sequelize.Sequelize.Op.gt]: new Date()
-        }
-      }
+      userId: user._id,
+      isActive: true,
+      expiresAt: { $gt: new Date() }
     });
 
     if (recentRequest) {
       const timeSinceLastRequest = Date.now() - new Date(recentRequest.createdAt).getTime();
       if (timeSinceLastRequest < RESET_REQUEST_COOLDOWN) {
         const remainingMinutes = Math.ceil((RESET_REQUEST_COOLDOWN - timeSinceLastRequest) / 60000);
-        await t.rollback();
         return res.status(429).json({ 
           message: `Please wait ${remainingMinutes} minute(s) before requesting another reset.`,
           canResend: true,
@@ -50,27 +41,25 @@ exports.forgotPassword = async (req, res) => {
       }
       // Mark old request as inactive
       recentRequest.isActive = false;
-      await recentRequest.save({ transaction: t });
+      await recentRequest.save();
     }
 
-    // Create new forgot password request with UUID
+    // Create new forgot password request
     const expiresAt = new Date(Date.now() + RESET_LINK_EXPIRY);
     const resetRequest = await ForgotPasswordRequests.create({
-      userId: user.id,
+      userId: user._id,
       isActive: true,
       expiresAt: expiresAt
-    }, { transaction: t });
-
-    await t.commit();
+    });
 
     // Log the reset URL (since email might not work)
     const baseUrl = process.env.BASE_URL || `http://localhost:${process.env.PORT || 3000}`;
-    const resetUrl = `${baseUrl}/password/resetpassword/${resetRequest.id}`;
+    const resetUrl = `${baseUrl}/password/resetpassword/${resetRequest._id}`;
 
     // Try to send email, but don't fail if it doesn't work
     try {
       const { sendResetEmail } = require("../services/emailService");
-      await sendResetEmail(email, resetRequest.id);
+      await sendResetEmail(email, resetRequest._id);
     } catch (emailError) {
       console.log('⚠️ Email could not be sent, but request was created');
       console.log('📧 Reset URL:', resetUrl);
@@ -82,7 +71,6 @@ exports.forgotPassword = async (req, res) => {
     });
 
   } catch (error) {
-    await t.rollback();
     console.error('❌ Forgot pw error:', error);
     res.status(500).json({ message: "Server error, try again." });
   }
@@ -100,9 +88,7 @@ exports.verifyResetRequest = async (req, res) => {
     }
 
     // Find the reset request
-    const resetRequest = await ForgotPasswordRequests.findOne({
-      where: { id: id }
-    });
+    const resetRequest = await ForgotPasswordRequests.findById(id);
 
     if (!resetRequest) {
       console.log('❌ Reset request not found');
@@ -129,10 +115,7 @@ exports.verifyResetRequest = async (req, res) => {
     }
 
     // Get user info
-    const user = await User.findOne({
-      where: { id: resetRequest.userId },
-      attributes: ['id', 'email', 'name']
-    });
+    const user = await User.findById(resetRequest.userId, 'email name');
 
     if (!user) {
       return res.status(404).json({ 
@@ -160,51 +143,39 @@ exports.verifyResetRequest = async (req, res) => {
 // Reset password using the request ID
 exports.resetPassword = async (req, res) => {
   const { id, newPassword } = req.body;
-  const t = await sequelize.transaction();
 
   try {
     console.log('🔑 Reset password request for ID:', id);
 
     if (!id || !newPassword) {
-      await t.rollback();
       return res.status(400).json({ message: "Request ID and new password are required" });
     }
 
     // Find the reset request
-    const resetRequest = await ForgotPasswordRequests.findOne({
-      where: { id: id },
-      transaction: t
-    });
+    const resetRequest = await ForgotPasswordRequests.findById(id);
 
     if (!resetRequest) {
-      await t.rollback();
       return res.status(404).json({ 
         message: "Reset link not found. Please request a new password reset." 
       });
     }
 
     if (!resetRequest.isActive) {
-      await t.rollback();
       return res.status(400).json({ 
         message: "This reset link has already been used. Please request a new password reset." 
       });
     }
 
     if (new Date() > new Date(resetRequest.expiresAt)) {
-      await t.rollback();
       return res.status(410).json({ 
         message: "Reset link has expired. Please request a new password reset." 
       });
     }
 
     // Find the user
-    const user = await User.findOne({ 
-      where: { id: resetRequest.userId }, 
-      transaction: t 
-    });
+    const user = await User.findById(resetRequest.userId);
 
     if (!user) {
-      await t.rollback();
       return res.status(404).json({ message: "User not found." });
     }
 
@@ -212,19 +183,17 @@ exports.resetPassword = async (req, res) => {
     const saltrounds = 10;
     const hashedPassword = await bcrypt.hash(newPassword, saltrounds);
     user.password = hashedPassword;
-    await user.save({ transaction: t });
+    await user.save();
 
     // Mark reset request as used and inactive
     resetRequest.isActive = false;
     resetRequest.usedAt = new Date();
-    await resetRequest.save({ transaction: t });
+    await resetRequest.save();
 
-    await t.commit();
     console.log('✅ Password reset successful for user:', user.email);
     res.status(200).json({ message: "Password reset successful. You can now login with your new password." });
 
   } catch (error) {
-    await t.rollback();
     console.error('❌ Reset password error:', error);
     res.status(500).json({ message: "Server error, try again." });
   }
@@ -241,7 +210,7 @@ exports.resendResetEmail = async (req, res) => {
       return res.status(400).json({ message: "Email required" });
     }
 
-    const user = await User.findOne({ where: { email } });
+    const user = await User.findOne({ email });
 
     if (!user) {
       return res.status(200).json({ message: "If email exists, reset link sent (check spam)." });
@@ -249,13 +218,9 @@ exports.resendResetEmail = async (req, res) => {
 
     // Find active reset request
     const resetRequest = await ForgotPasswordRequests.findOne({
-      where: {
-        userId: user.id,
-        isActive: true,
-        expiresAt: {
-          [sequelize.Sequelize.Op.gt]: new Date()
-        }
-      }
+      userId: user._id,
+      isActive: true,
+      expiresAt: { $gt: new Date() }
     });
 
     if (!resetRequest) {
@@ -268,7 +233,7 @@ exports.resendResetEmail = async (req, res) => {
     // Try to send email
     try {
       const { sendResetEmail } = require("../services/emailService");
-      await sendResetEmail(email, resetRequest.id);
+      await sendResetEmail(email, resetRequest._id);
     } catch (emailError) {
       console.log('⚠️ Email could not be sent, but request exists');
     }
@@ -277,7 +242,7 @@ exports.resendResetEmail = async (req, res) => {
     const baseUrl = process.env.BASE_URL || `http://localhost:${process.env.PORT || 3000}`;
     res.status(200).json({ 
       message: "Reset email resent. Check inbox/spam.",
-      resetUrl: `${baseUrl}/password/resetpassword/${resetRequest.id}`,
+      resetUrl: `${baseUrl}/password/resetpassword/${resetRequest._id}`,
       expiresIn: expiresIn + " minutes"
     });
 

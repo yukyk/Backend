@@ -7,12 +7,7 @@ const cors = require("cors");
 const authRoutes = require("./Routes/signupRoutes");
 const paymentRoutes = require("./Routes/paymentRoutes");
 const passwordRoutes = require("./Routes/passwordRoutes");
-const sequelize = require("./Utils/util");
-const Signup = require("./Models/signupModel");
-const Expense = require("./Models/expenseModel");
-const Income = require("./Models/incomeModel");
-const Order = require("./Models/orderModel");
-const ForgotPasswordRequests = require("./Models/forgotPasswordRequests");
+const { connectDB } = require("./Utils/util");
 
 const app = express();
 
@@ -20,19 +15,6 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-
-// Associations
-Signup.hasMany(Expense, { foreignKey: "userId" });
-Expense.belongsTo(Signup, { foreignKey: "userId" });
-
-Signup.hasMany(Income, { foreignKey: "userId" });
-Income.belongsTo(Signup, { foreignKey: "userId" });
-
-Signup.hasMany(Order, { foreignKey: "userId" });
-Order.belongsTo(Signup, { foreignKey: "userId" });
-
-Signup.hasMany(ForgotPasswordRequests, { foreignKey: "userId" });
-ForgotPasswordRequests.belongsTo(Signup, { foreignKey: "userId" });
 
 // API Routes
 app.use("/api/auth", authRoutes);
@@ -69,17 +51,14 @@ app.get("/payment",(req,res)=>{
 app.use(express.static(path.join(__dirname, "public")));
 app.use(express.static(path.join(__dirname, "View")));
 
-// Database sync
-sequelize
-    .sync()
+// Database connection
+connectDB()
     .then(() => {
-        console.log("Database synced successfully");
-
         const port = process.env.PORT || 3000;
         app.listen(port, () => {
             console.log(`Server running at http://localhost:${port}`);
         });
     })
     .catch((err) => {
-        console.error("Database sync failed:", err.message);
+        console.error("Failed to start server:", err.message);
     });

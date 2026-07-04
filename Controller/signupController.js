@@ -1,34 +1,28 @@
 const User = require("../Models/signupModel");
-const sequelize = require("../Utils/util");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 
 exports.signup = async (req, res) => {
-    const t = await sequelize.transaction();
     try {
       const { name, email, phone, password } = req.body;
 
       if (!name || !email || !phone || !password) {
-        await t.rollback();
         return res.status(400).json({ message: "All fields are required" });
       }
 
-      const userExists = await User.findOne({ where: { email }, transaction: t });
+      const userExists = await User.findOne({ email });
 
       if (userExists) {
-        await t.rollback();
         return res.status(409).json({ message: "User already exists" });
       }
       
       const saltrounds = 10;
       const hashedPassword = await bcrypt.hash(password, saltrounds);
 
-      await User.create({ name, email, phone, password: hashedPassword }, { transaction: t });
+      await User.create({ name, email, phone, password: hashedPassword });
 
-      await t.commit();
       res.status(201).json({ message: "Signup successful" });
     } catch (err) {
-      await t.rollback();
       console.error(err);
       res.status(500).json({ message: "Internal server error" });
     }
@@ -49,7 +43,7 @@ exports.login = async (req, res) => {
         return res.status(400).json({ message: "Email and password required" });
     }
 
-    const user = await User.findOne({ where: { email } });
+    const user = await User.findOne({ email });
 
     if (!user) {
         return res.status(401).json({ message: "User not found" });
@@ -62,7 +56,7 @@ exports.login = async (req, res) => {
   
     
     // Return JWT token (frontend must send as `Authorization: Bearer <token>`)
-    const token = generateAccessToken(user.id, user.isPremium, user.premiumTier || 0);
+    const token = generateAccessToken(user._id, user.isPremium, user.premiumTier || 0);
     res.status(200).json({ message: "Login successful", token });
     } catch(err){
       return res.status(500).json({ message: "Internal server error" });

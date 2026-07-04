@@ -1,40 +1,28 @@
-const { DataTypes } = require('sequelize');
-const sequelize = require('../Utils/util');
-const { v4: uuidv4 } = require('uuid');
+const mongoose = require('mongoose');
 
-const ForgotPasswordRequests = sequelize.define('ForgotPasswordRequests', {
-  id: {
-    type: DataTypes.UUID,
-    defaultValue: () => uuidv4(),
-    primaryKey: true,
-    allowNull: false,
-    unique: true
-  },
+const Schema = mongoose.Schema;
+
+const forgotPasswordRequestSchema = new Schema({
   userId: {
-    type: DataTypes.INTEGER,
-    allowNull: false,
-    references: {
-      model: 'signup',
-      key: 'id'
-    }
+    type: Schema.Types.ObjectId,
+    ref: 'Signup',
+    required: true
   },
   isActive: {
-    type: DataTypes.BOOLEAN,
-    defaultValue: true,
-    allowNull: false
+    type: Boolean,
+    default: true,
+    required: true
   },
   expiresAt: {
-    type: DataTypes.DATE,
-    allowNull: false
+    type: Date,
+    required: true
   },
   usedAt: {
-    type: DataTypes.DATE,
-    allowNull: true
+    type: Date,
+    default: null
   }
 }, {
-  tableName: 'ForgotPasswordRequests',
-  timestamps: true,
-  updatedAt: false  // Don't update the record timestamp, only createdAt
+  timestamps: { createdAt: true, updatedAt: false }
 });
 
-module.exports = ForgotPasswordRequests;
+module.exports = mongoose.model('ForgotPasswordRequests', forgotPasswordRequestSchema);
