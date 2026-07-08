@@ -1,13 +1,12 @@
 const Order = require("../Models/orderModel");
 const Signup = require("../Models/signupModel");
-const { createOrder, getPaymentStatus } = require("../services/cashFreeService");
 
 
 function generateOrderId() {
     return `TESTING_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 }
 
-// Create payment order - Uses Cashfree API properly
+// Create payment order - immediately mark premium as successful for local/demo use
 exports.createPaymentOrder = async (req, res) => {
     try {
         const { amount, premiumTier } = req.body;
@@ -20,41 +19,37 @@ exports.createPaymentOrder = async (req, res) => {
         if (!user) return res.status(404).json({ error: 'User not found' });
 
         const orderId = generateOrderId();
+        const selectedTier = parseInt(premiumTier, 10) || 1;
 
         const orderData = {
             orderId: orderId,
             userId: userId,
             amount: parseFloat(amount),
-            status: 'PENDING'
+            status: 'SUCCESSFUL',
+            premiumTier: selectedTier
         };
 
-        if (premiumTier) {
-            orderData.premiumTier = premiumTier;
-        }
-        
         await Order.create(orderData);
 
-        try {
-            const paymentSessionId = await createOrder(orderId, amount, 'INR', userId.toString(), user.phone);
-            await Order.updateOne({ orderId }, { paymentSessionId });
+        user.isPremium = true;
+        user.premiumTier = Math.max(user.premiumTier || 0, selectedTier);
+        await user.save();
 
-            return res.status(201).json({ 
-                orderId, 
-                paymentSessionId, 
-                amount,
-                premiumTier: premiumTier || 1
-            });
-        } catch (cashfreeError) {
-            await Order.updateOne({ orderId }, { status: 'FAILED' });
-            return res.status(500).json({ error: 'Failed to create payment session', details: cashfreeError.message });
-        }
+        return res.status(201).json({
+            orderId,
+            paymentSessionId: orderId,
+            amount,
+            premiumTier: selectedTier,
+            status: 'SUCCESSFUL',
+            message: 'Premium activated successfully'
+        });
 
     } catch (error) {
         return res.status(500).json({ error: error.message });
     }
 };
 
-// Verify payment - Uses Cashfree API to verify, then updates DB
+// Verify payment - immediately mark the order as successful for local/demo use
 exports.verifyPayment = async (req, res) => {
     try {
         const { orderId } = req.body;
@@ -67,34 +62,22 @@ exports.verifyPayment = async (req, res) => {
         if (!order) return res.status(404).json({ error: 'Order not found' });
         if (order.userId.toString() !== userId) return res.status(403).json({ error: 'Forbidden' });
 
-        // Check Cashfree for actual payment status
-        try {
-            const paymentStatus = await getPaymentStatus(orderId);
-            const actualStatus = paymentStatus.status;
-            
-            
-            if (actualStatus === 'SUCCESS') {
-                // Update order status
-                await Order.updateOne({ orderId }, { status: 'SUCCESSFUL' });
-                
-                // Update user to premium
-                const purchasedTier = order.premiumTier || 1;
-                await Signup.updateOne(
-                    { _id: userId },
-                    { isPremium: true, premiumTier: purchasedTier }
-                );
-                
-            }
-            
-            return res.status(200).json({
-                orderId: order.orderId,
-                status: order.status,
-                amount: order.amount
-            });
-        } catch (cashfreeError) {
-            console.error('🔴 Cashfree verification error:', cashfreeError.message);
-            return res.status(500).json({ error: 'Payment verification failed' });
+        order.status = 'SUCCESSFUL';
+        await order.save();
+
+        const user = await Signup.findById(userId);
+        if (user) {
+            user.isPremium = true;
+            user.premiumTier = Math.max(user.premiumTier || 0, order.premiumTier || 1);
+            await user.save();
         }
+
+        return res.status(200).json({
+            orderId: order.orderId,
+            status: 'SUCCESSFUL',
+            amount: order.amount,
+            message: 'Payment verified successfully'
+        });
 
     } catch (error) {
         return res.status(500).json({ error: error.message });
@@ -157,7 +140,10 @@ exports.getPremiumStatus = async (req, res) => {
         const user = await Signup.findById(userId);
         if (!user) return res.status(404).json({ error: 'User not found' });
 
-        return res.status(200).json({ isPremium: user.isPremium, premiumTier: user.premiumTier || 0 });
+        const isPremium = Boolean(user.isPremium || req.user.isPremium || req.user.premiumTier > 0);
+        const premiumTier = user.premiumTier || req.user.premiumTier || 0;
+
+        return res.status(200).json({ isPremium, premiumTier });
     } catch (error) {
         console.error("Get Premium Status Error:", error.message);
         return res.status(500).json({ error: error.message });

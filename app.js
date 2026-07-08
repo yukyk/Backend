@@ -46,6 +46,9 @@ app.get("/payment",(req,res)=>{
     res.sendFile(path.join(__dirname, "View", "payment.html"));
 });
 
+app.get("/payment-options", (req, res) => {
+    res.sendFile(path.join(__dirname, "View", "payment-options.html"));
+});
 
 // Static files
 app.use(express.static(path.join(__dirname, "public")));

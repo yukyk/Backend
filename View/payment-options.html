@@ -358,72 +358,27 @@
       const premiumTier = tierMap[amount] || 1;
 
       document.getElementById('loadingIndicator').style.display = 'block';
-      
+
       try {
-        console.log('💳 Creating payment order for amount:', amount, 'tier:', premiumTier);
+        console.log('💳 Activating premium immediately for amount:', amount, 'tier:', premiumTier);
         const response = await axios.post('/api/payment/create-order', { amount, premiumTier });
-        const { orderId, paymentSessionId } = response.data;
-        
-        console.log('✅ Order created:', orderId);
-        console.log('✅ Payment Session ID:', paymentSessionId);
 
-        const script = document.createElement('script');
-        script.src = 'https://sdk.cashfree.com/js/v3/cashfree.js';
-        script.onload = () => {
-          console.log('✅ Cashfree SDK loaded, initializing checkout...');
-          
-          const cashfree = Cashfree({
-            mode: "sandbox"
-          });
+        document.getElementById('loadingIndicator').style.display = 'none';
 
-          let checkoutOptions = {
-            paymentSessionId: paymentSessionId,
-            redirectTarget: "_modal"
-          };
-
-          console.log('🔵 Opening Cashfree checkout with session ID:', paymentSessionId);
-          
-          cashfree.checkout(checkoutOptions).then((result) => {
-            console.log('🔵 Checkout result received:', result);
-            document.getElementById('loadingIndicator').style.display = 'none';
-            
-            if(result.error) {
-              console.log('🔴 User closed popup or error occurred:', result.error);
-              showAlert('Payment cancelled. Please try again.', 'error');
-            }
-            else if(result.redirect) {
-              console.log('🔵 Payment will be redirected to return URL');
-              showAlert('Payment processing, please wait...', 'success');
-              setTimeout(() => verifyPayment(orderId), 2000);
-            }
-            else if(result.paymentDetails) {
-              console.log('✅ Payment completed, message:', result.paymentDetails.paymentMessage);
-              showAlert('Payment processed! Verifying status...', 'success');
-              setTimeout(() => verifyPayment(orderId), 2000);
-            }
-          }).catch((error) => {
-            console.error('❌ Checkout error:', error);
-            document.getElementById('loadingIndicator').style.display = 'none';
-            showAlert('Payment error occurred. Please try again.', 'error');
-          });
-        };
-        
-        script.onerror = () => {
-          console.error('❌ Failed to load Cashfree SDK');
-          document.getElementById('loadingIndicator').style.display = 'none';
-          showAlert('Failed to load payment gateway. Please try again.', 'error');
-        };
-        
-        document.body.appendChild(script);
-
+        if (response.data?.status === 'SUCCESSFUL' || response.status === 201) {
+          showAlert(response.data?.message || 'Premium activated successfully!', 'success');
+          showHurrayScreen();
+        } else {
+          showAlert('Premium activation did not complete. Please try again.', 'error');
+        }
       } catch (error) {
         document.getElementById('loadingIndicator').style.display = 'none';
         console.error('❌ Order creation error:', error);
         console.error('Error response:', error.response?.data);
         console.error('Error message:', error.message);
-        
-        let errorMessage = 'Failed to create payment order.';
-        
+
+        let errorMessage = 'Failed to activate premium.';
+
         if (error.response?.data?.details) {
           errorMessage += ' Details: ' + error.response.data.details;
         } else if (error.response?.data?.error) {
@@ -431,7 +386,7 @@
         } else if (error.message) {
           errorMessage += ' ' + error.message;
         }
-        
+
         showAlert(errorMessage, 'error');
       }
     }

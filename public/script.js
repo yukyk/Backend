@@ -282,7 +282,13 @@ async function showLeaderboard() {
     
     document.getElementById('leaderboardModal').style.display = 'flex';
   } catch (err) {
-    showToast('Error loading leaderboard', 'error');
+    if (err.response?.status === 403) {
+      showToast('Buy premium membership to access the leaderboard.', 'info');
+    } else if (err.response?.status === 401) {
+      showToast('Please log in again to access the leaderboard.', 'warning');
+    } else {
+      showToast('Error loading leaderboard', 'error');
+    }
   }
 }
 

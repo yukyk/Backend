@@ -162,9 +162,12 @@ const getLeaderboard = async (req, res) => {
     const userId = req.user && req.user.userId;
     if (!userId) return res.status(401).json({ error: 'Unauthorized' });
 
-    const userPremiumTier = req.user.premiumTier || 0;
-    const userIsPremium = req.user.isPremium || false;
-    
+    const user = await Signup.findById(userId);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    const userPremiumTier = req.user?.premiumTier || user.premiumTier || 0;
+    const userIsPremium = req.user?.isPremium || user.isPremium || false;
+
     if (userPremiumTier === 0 && !userIsPremium) {
       return res.status(403).json({ error: 'Access denied. Premium membership required.' });
     }
