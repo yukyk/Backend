@@ -17,5 +17,6 @@ router.put('/update-expense/:id', authJwt, expenseController.updateExpense);
 router.get('/leaderboard', authJwt, expenseController.getLeaderboard);
 router.get('/suggest-category', expenseController.suggestCategory);  // Public AI
 router.get('/insights', authJwt, expenseController.getInsights);  // Premium AI
+router.get('/export-expenses', authJwt, expenseController.exportExpenses);
 
 module.exports = router;

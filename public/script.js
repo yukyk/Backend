@@ -1,12 +1,9 @@
 console.log('Expense tracker script loaded');
 
-// ==================== GLOBAL STATE MANAGEMENT ====================
-// Uses existing global state if already defined by the environment, otherwise initializes
 window.allExpenses = window.allExpenses || [];
 window.currentViewType = window.currentViewType || 'expense';
 let _currentlyEditingId = null;
 
-// ==================== TOAST NOTIFICATIONS ====================
 function showToast(message, type = 'success') {
   const existingToast = document.querySelector('.toast-notification');
   if (existingToast) existingToast.remove();
@@ -36,10 +33,8 @@ function showToast(message, type = 'success') {
     setTimeout(() => toast.remove(), 300);
   }, 3000);
 }
-
 window.showToast = showToast;
 
-// Inject Animation Styles Globally
 const style = document.createElement('style');
 style.textContent = `
   @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
@@ -47,7 +42,6 @@ style.textContent = `
 `;
 document.head.appendChild(style);
 
-// ==================== AUTHENTICATION UTILITIES ====================
 function getToken() {
   return localStorage.getItem('token');
 }
@@ -89,7 +83,6 @@ function logout() {
 }
 window.logout = logout;
 
-// ==================== AXIOS INTERCEPTORS ====================
 if (window.axios) {
   axios.interceptors.request.use((config) => {
     const token = getToken();
@@ -111,19 +104,12 @@ if (window.axios) {
   );
 }
 
-// ==================== CORE API DATA FETCHING ====================
 async function fetchExpenses() {
   try {
-    const res = await axios.get('/api/auth/get-expenses');
+    const params = typeof window.getExpenseRequestParams === 'function' ? window.getExpenseRequestParams() : {};
+    const res = await axios.get('/api/auth/get-expenses', { params });
     window.allExpenses = res.data || [];
     
-    const totalExpense = window.allExpenses.reduce((sum, e) => sum + parseFloat(e.amount || 0), 0);
-    const totalExpensesEl = document.getElementById('totalExpenses');
-    if (totalExpensesEl) {
-      totalExpensesEl.textContent = `$${totalExpense.toFixed(2)}`;
-    }
-    
-    // Explicit reference to the locally scoped or global render wrapper
     if (window.currentViewType === 'expense') {
       if (typeof window.renderEntries === 'function') {
         window.renderEntries(window.allExpenses);
@@ -138,11 +124,9 @@ async function fetchExpenses() {
 }
 window.fetchExpenses = fetchExpenses;
 
-// ==================== LIST RENDERING COMPONENT ====================
 function renderExpenses(items) {
   const expenseList = document.getElementById('expenseList');
   if (!expenseList) return;
-  
   expenseList.innerHTML = '';
   
   if (!items || items.length === 0) {
@@ -169,7 +153,6 @@ function createListItem(item, type) {
   const row = document.createElement('div');
   row.style.cssText = 'display: flex; justify-content: space-between; align-items: center; gap: 12px;';
 
-  // Left Section (Description & Meta details)
   const left = document.createElement('div');
   left.className = 'left-section';
 
@@ -189,7 +172,6 @@ function createListItem(item, type) {
   left.appendChild(desc);
   left.appendChild(meta);
 
-  // Right Section (Amount & Actions)
   const right = document.createElement('div');
   right.className = 'right-section';
   right.style.textAlign = 'right';
@@ -247,7 +229,6 @@ function createListItem(item, type) {
   return li;
 }
 
-// ==================== INLINE EDITING UTILITY ====================
 function startInlineEditLocal(item, rowElement) {
   if (!rowElement) return;
   const itemId = item.id || item._id;
@@ -341,7 +322,6 @@ function cancelInlineEditLocal() {
 }
 window.cancelInlineEditLocal = cancelInlineEditLocal;
 
-// ==================== VIEW VIEW FILTER HANDLING ====================
 function setViewType(type) {
   window.currentViewType = type;
   if (type === 'expense') {
@@ -350,7 +330,6 @@ function setViewType(type) {
 }
 window.setViewType = setViewType;
 
-// ==================== LEADERBOARD & MODALS ====================
 function handleLeaderboard() {
   const leaderboardBtn = document.getElementById('leaderboardBtn');
   if (leaderboardBtn?.classList.contains('locked')) {
@@ -387,7 +366,6 @@ async function showLeaderboard() {
         li.innerHTML = `<strong>${index + 1}. ${user.name}</strong> - $${parseFloat(user.totalExpense).toFixed(2)}`;
         ul.appendChild(li);
       });
-      
       list.appendChild(ul);
     }
     
@@ -411,7 +389,6 @@ function closeModal() {
 }
 window.closeModal = closeModal;
 
-// ==================== AI EXTENSIONS ====================
 let aiSuggestionTimeout;
 
 function setupAISuggestion() {
@@ -451,7 +428,6 @@ function showAISuggestion(category) {
     suggEl.style.cssText = 'color: #10b981; font-size: 14px; margin-top: 4px; font-style: italic;';
     categoryEl.parentNode.appendChild(suggEl);
   }
-  
   suggEl.textContent = `🤖 AI suggests: ${category}`;
 }
 

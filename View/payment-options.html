@@ -244,6 +244,7 @@
           <li>Advanced expense analytics</li>
           <li>Budget alerts</li>
           <li>Multi-account sync</li>
+          <li>Export expenses to Excel/PDF</li>
           <li class="unavailable">Priority support</li>
         </ul>
         <button type="button" class="select-plan-btn" onclick="selectPlan(999)">Select Plan</button>
@@ -258,6 +259,7 @@
           <li>Advanced expense analytics</li>
           <li>Budget alerts</li>
           <li>Multi-account sync</li>
+          <li>Export expenses to Excel/PDF</li>
           <li>Priority 24/7 support</li>
         </ul>
         <button type="button" class="select-plan-btn" onclick="selectPlan(1599)">Select Plan</button>
@@ -271,256 +273,140 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-  <script>
-    // Get JWT token from localStorage
-    function getToken() {
-      const token = localStorage.getItem('token');
-      console.log('🔍 Token from localStorage:', token ? token.substring(0, 30) + '...' : 'NO TOKEN FOUND');
-      return token;
+ <script>
+  // Initialize Cashfree SDK globally in sandbox mode
+  const cashfree = Cashfree({ mode: "sandbox" });
+
+  function getToken() {
+    return localStorage.getItem('token');
+  }
+
+  function checkAuth() {
+    const token = getToken();
+    if (!token) {
+      alert('Not authenticated. Please login first.');
+      window.location.href = '/';
+      return false;
     }
+    return true;
+  }
 
-    // Check if user is logged in
-    function checkAuth() {
-      const token = getToken();
-      if (!token) {
-        alert('Not authenticated. Please login first.');
-        window.location.href = '/';
-        return false;
-      }
-      return true;
+  axios.interceptors.request.use((config) => {
+    const token = getToken();
+    if (token) {
+      config.headers['Authorization'] = `Bearer ${token}`;
+      config.headers['Content-Type'] = 'application/json';
     }
+    return config;
+  }, (error) => {
+    return Promise.reject(error);
+  });
 
-    // Set up axios to include JWT token in all requests
-    axios.interceptors.request.use((config) => {
-      const token = getToken();
-      if (token) {
-        console.log('📤 Sending request with Authorization header');
-        console.log('📤 Full header: Bearer ' + token);
-        config.headers['Authorization'] = `Bearer ${token}`;
-        config.headers['Content-Type'] = 'application/json';
-      } else {
-        console.log('🔴 No token found in localStorage!');
+  async function selectPlan(amount) {
+    if (!checkAuth()) return;
+
+    // Fixed key-tier mapping matching backend business logic expectations
+    const tierMap = { 499: 1, 999: 2, 1599: 3 };
+    const premiumTier = tierMap[amount] || 1;
+
+    document.getElementById('loadingIndicator').style.display = 'block';
+
+    try {
+      console.log('💳 Creating order on backend...');
+      const response = await axios.post('/api/payment/create-order', { amount, premiumTier });
+
+      const { paymentSessionId, orderId } = response.data;
+
+      if (!paymentSessionId) {
+        document.getElementById('loadingIndicator').style.display = 'none';
+        showAlert('Failed to initialize checkout session token.', 'error');
+        return;
       }
-      console.log('📤 Full config headers:', config.headers);
-      return config;
-    }, (error) => {
-      console.error('❌ Axios request interceptor error:', error);
-      return Promise.reject(error);
-    });
 
-    // Add response interceptor for debugging
-    axios.interceptors.response.use(
-      (response) => {
-        console.log('✅ Response received:', response.status);
-        return response;
-      },
-      (error) => {
-        console.error('❌ Response error:', error.response?.status, error.response?.data);
-        return Promise.reject(error);
-      }
-    );
+      console.log(`✅ Session ID generated. Launching Cashfree for order: ${orderId}`);
 
-    async function testAuth() {
-      console.log('🧪 TEST 1: Checking if payment routes are loaded...');
-      
-      try {
-        // First test - no auth required
-        const healthCheck = await axios.get('/api/payment/health');
-        console.log('✅ TEST 1 PASSED - Payment routes are active');
-        showAlert('✅ Step 1 Passed: Payment routes are active', 'success');
+      // FIXED: Added mandatory returnUrl to seamlessly handle redirect completion
+      cashfree.checkout({
+        paymentSessionId: paymentSessionId,
+        returnUrl: `${window.location.origin}/payment-options.html?order_id=${orderId}`
+      });
 
-        // Second test - with auth
-        console.log('🧪 TEST 2: Testing token authorization...');
-        const response = await axios.post('/api/payment/test-auth', {});
-        console.log('✅ TEST 2 PASSED - Token received correctly');
-        console.log('✅ Response:', response.data);
-        showAlert('✅ Step 2 Passed: Authorization header sent correctly!', 'success');
-
-      } catch (error) {
-        console.error('❌ Test Error:', error);
-        
-        if (error.response?.status === 404) {
-          showAlert('❌ Routes not found. Server may need restart. Status: ' + error.response.status, 'error');
-        } else if (error.response?.status === 400) {
-          showAlert('❌ Authorization header issue: ' + (error.response?.data?.error || 'Unknown'), 'error');
-        } else if (error.message.includes('Network')) {
-          showAlert('❌ Network error. Server not responding.', 'error');
-        } else {
-          showAlert('❌ Test failed: ' + (error.response?.data?.error || error.message), 'error');
-        }
-      }
+    } catch (error) {
+      document.getElementById('loadingIndicator').style.display = 'none';
+      console.error('❌ Order creation error:', error);
+      showAlert('Failed to initiate checkout via Cashfree gateway.', 'error');
     }
+  }
 
-    async function selectPlan(amount) {
-      if (!checkAuth()) return;
-
-      const tierMap = { 499: 1, 999: 2, 1599: 3 };
-      const premiumTier = tierMap[amount] || 1;
-
+  async function verifyPayment(orderId) {
+    try {
       document.getElementById('loadingIndicator').style.display = 'block';
-
-      try {
-        console.log('💳 Activating premium immediately for amount:', amount, 'tier:', premiumTier);
-        const response = await axios.post('/api/payment/create-order', { amount, premiumTier });
-
-        document.getElementById('loadingIndicator').style.display = 'none';
-
-        if (response.data?.status === 'SUCCESSFUL' || response.status === 201) {
-          showAlert(response.data?.message || 'Premium activated successfully!', 'success');
-          showHurrayScreen();
-        } else {
-          showAlert('Premium activation did not complete. Please try again.', 'error');
-        }
-      } catch (error) {
-        document.getElementById('loadingIndicator').style.display = 'none';
-        console.error('❌ Order creation error:', error);
-        console.error('Error response:', error.response?.data);
-        console.error('Error message:', error.message);
-
-        let errorMessage = 'Failed to activate premium.';
-
-        if (error.response?.data?.details) {
-          errorMessage += ' Details: ' + error.response.data.details;
-        } else if (error.response?.data?.error) {
-          errorMessage += ' ' + error.response.data.error;
-        } else if (error.message) {
-          errorMessage += ' ' + error.message;
-        }
-
-        showAlert(errorMessage, 'error');
-      }
-    }
-
-    async function verifyPayment(orderId) {
-      try {
-        console.log('💳 Verifying payment for order:', orderId);
-        const response = await axios.post('/api/payment/verify-payment', { orderId });
-        console.log('📥 Full response:', response);
-        console.log('📥 Response data:', response.data);
-        
-        const { status, transactions } = response.data;
-
-        console.log('✅ Payment verification result:', status);
-        console.log('📊 Checking if status === "SUCCESSFUL":', status === 'SUCCESSFUL');
-        
-        if (transactions && transactions.length > 0) {
-          console.log('📋 Transaction details:', transactions);
-          transactions.forEach((txn, index) => {
-            console.log(`  Transaction ${index + 1}:`, txn.payment_status, '- Amount:', txn.payment_amount);
-          });
-        }
-
-        console.log('🔍 Status value:', status, 'Type:', typeof status);
-        console.log('🔍 Exact match check:', status === 'SUCCESSFUL');
-        
-if (status === 'SUCCESSFUL') {
-            console.log('🎉 Calling showHurrayScreen!');
-            showHurrayScreen();
-          } else if (status === 'FAILED') {
-           console.log('❌ Payment failed');
-           showAlert('Transaction Failed. Please try again.', 'error');
-           document.getElementById('loadingIndicator').style.display = 'none';
-         } else if (status === 'PENDING') {
-           console.log('⏳ Payment still pending, checking again...');
-           document.getElementById('loadingIndicator').style.display = 'none';
-           showAlert('Payment is being processed. Please wait...', 'success');
-           setTimeout(() => verifyPayment(orderId), 3000);
-         } else {
-           console.log('❓ Unknown status:', status);
-           showAlert('Payment status: ' + status, 'error');
-         }
-      } catch (error) {
-        console.error('❌ Verification error:', error);
-        console.error('Error response:', error.response?.data);
-        document.getElementById('loadingIndicator').style.display = 'none';
-        showAlert('Payment verification failed. Please check your payment status.', 'error');
-      }
-    }
-
-    async function updatePaymentStatus(orderId, status) {
-      try {
-        await axios.post('/api/payment/update-status', { orderId, status });
-      } catch (error) {
-        console.error('Status update error:', error);
-      }
-    }
-
-    function showAlert(message, type) {
-      const alertElement = document.getElementById('alertMessage');
-      alertElement.textContent = message;
-      alertElement.className = `alert ${type}`;
-      alertElement.style.display = 'block';
-
-      if (type === 'success') {
-        setTimeout(() => {
-          alertElement.style.display = 'none';
-        }, 3000);
-      }
-    }
-
-    function showHurrayScreen() {
-      const hurrayDiv = document.createElement('div');
-      hurrayDiv.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: linear-gradient(135deg, #635BFF, #5245d8);
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        z-index: 10000;
-        text-align: center;
-      `;
+      console.log('💳 Verifying payment status for order:', orderId);
       
-      hurrayDiv.innerHTML = `
-        <div style="animation: bounce 1s ease infinite;">
-          <h1 style="font-size: 72px; margin: 0;">🎉</h1>
-        </div>
-        <h2 style="color: white; font-size: 36px; margin: 20px 0 10px 0;">Hurray!</h2>
-        <p style="color: white; font-size: 20px; margin: 0 0 30px 0;">You are now a Premium Member!</p>
-        <p style="color: rgba(255,255,255,0.8); font-size: 16px; margin: 0 0 40px 0;">Enjoy unlimited access to all premium features.</p>
-        <button onclick="goToExpense()" style="
-          background: white;
-          color: #635BFF;
-          border: none;
-          padding: 15px 40px;
-          border-radius: 30px;
-          font-size: 18px;
-          font-weight: 600;
-          cursor: pointer;
-          transition: transform 0.3s ease;
-        ">Get Started →</button>
-      `;
-      
-      const style = document.createElement('style');
-      style.textContent = `
-        @keyframes bounce {
-          0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-20px); }
-        }
-        @keyframes fadeIn {
-          from { opacity: 0; transform: scale(0.9); }
-          to { opacity: 1; transform: scale(1); }
-        }
-      `;
-      document.head.appendChild(style);
-      hurrayDiv.style.animation = 'fadeIn 0.5s ease';
-      document.body.appendChild(hurrayDiv);
-    }
+      const response = await axios.post('/api/payment/verify-payment', { orderId });
+      const { status } = response.data;
 
-    function goToExpense() {
-      window.location.href = '/expense';
-    }
+      document.getElementById('loadingIndicator').style.display = 'none';
 
-    // Check authentication on page load
-    window.addEventListener('load', () => {
-      if (!checkAuth()) {
-        window.location.href = '/';
+      if (status === 'SUCCESSFUL') {
+        showHurrayScreen();
+      } else if (status === 'FAILED') {
+        showAlert('Transaction Failed. Please try again.', 'error');
+      } else if (status === 'PENDING') {
+        showAlert('Payment is processing. Re-verifying...', 'success');
+        setTimeout(() => verifyPayment(orderId), 3000);
       }
-    });
-  </script>
+    } catch (error) {
+      console.error('❌ Verification error:', error);
+      document.getElementById('loadingIndicator').style.display = 'none';
+      showAlert('Payment verification failed.', 'error');
+    }
+  }
+
+  function showAlert(message, type) {
+    const alertElement = document.getElementById('alertMessage');
+    alertElement.textContent = message;
+    alertElement.className = `alert ${type}`;
+    alertElement.style.display = 'block';
+  }
+
+  function showHurrayScreen() {
+    const hurrayDiv = document.createElement('div');
+    hurrayDiv.style.cssText = `
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: linear-gradient(135deg, #635BFF, #5245d8);
+      display: flex; flex-direction: column; justify-content: center;
+      align-items: center; z-index: 10000; text-align: center;
+    `;
+    
+    hurrayDiv.innerHTML = `
+      <div style="animation: bounce 1s ease infinite;">
+        <h1 style="font-size: 72px; margin: 0;">🎉</h1>
+      </div>
+      <h2 style="color: white; font-size: 36px; margin: 20px 0 10px 0;">Hurray!</h2>
+      <p style="color: white; font-size: 20px; margin: 0 0 30px 0;">Your membership upgrade was processed successfully!</p>
+      <button onclick="goToExpense()" style="
+        background: white; color: #635BFF; border: none; padding: 15px 40px;
+        border-radius: 30px; font-size: 18px; font-weight: 600; cursor: pointer;
+      ">Go to Dashboard →</button>
+    `;
+    document.body.appendChild(hurrayDiv);
+  }
+
+  function goToExpense() {
+    window.location.href = '/expense';
+  }
+
+  // Auto-run verification when landed back via returnUrl
+  window.addEventListener('load', () => {
+    if (checkAuth()) {
+      const urlParams = new URLSearchParams(window.location.search);
+      const orderId = urlParams.get('order_id');
+      if (orderId) {
+        verifyPayment(orderId);
+      }
+    }
+  });
+</script>
 </body>
 </html>

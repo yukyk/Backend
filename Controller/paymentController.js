@@ -1,55 +1,67 @@
 const Order = require("../Models/orderModel");
 const Signup = require("../Models/signupModel");
-
+const cashfreeService = require("../services/cashfreeService"); // Double check this path matches your service location
 
 function generateOrderId() {
-    return `TESTING_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    return `ORDER_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`.toUpperCase();
 }
 
-// Create payment order - immediately mark premium as successful for local/demo use
+// Create payment order via Cashfree PG
 exports.createPaymentOrder = async (req, res) => {
     try {
         const { amount, premiumTier } = req.body;
         const userId = req.user && req.user.userId;
 
         if (!userId) return res.status(401).json({ error: 'Unauthorized' });
-        if (!amount) return res.status(400).json({ error: 'Amount is required' });
+        if (!amount || parseFloat(amount) <= 0) return res.status(400).json({ error: 'A valid amount is required' });
 
         const user = await Signup.findById(userId);
         if (!user) return res.status(404).json({ error: 'User not found' });
 
         const orderId = generateOrderId();
         const selectedTier = parseInt(premiumTier, 10) || 1;
+        
+        // Clean customer details required by Cashfree (phone fallback if empty)
+        const customerPhone = user.phone || "9999999999"; 
 
+        console.log(`Creating dynamic Cashfree order session for User: ${userId}`);
+
+        // 1. Generate payment session token from Cashfree
+        const paymentSessionId = await cashfreeService.createOrder(
+            orderId,
+            parseFloat(amount),
+            'INR',
+            userId,
+            customerPhone
+        );
+
+        // 2. Log record to local DB as PENDING
         const orderData = {
             orderId: orderId,
             userId: userId,
             amount: parseFloat(amount),
-            status: 'SUCCESSFUL',
+            status: 'PENDING',
             premiumTier: selectedTier
         };
-
         await Order.create(orderData);
 
-        user.isPremium = true;
-        user.premiumTier = Math.max(user.premiumTier || 0, selectedTier);
-        await user.save();
-
+        // 3. Send session payload back to frontend context to trigger SDK checkout overlay
         return res.status(201).json({
             orderId,
-            paymentSessionId: orderId,
+            paymentSessionId,
             amount,
             premiumTier: selectedTier,
-            status: 'SUCCESSFUL',
-            message: 'Premium activated successfully'
+            status: 'PENDING',
+            message: 'Payment session created successfully'
         });
 
     } catch (error) {
+        console.error("🔴 Error inside createPaymentOrder:", error.message);
         return res.status(500).json({ error: error.message });
     }
 };
 
-// Verify payment - immediately mark the order as successful for local/demo use
+// Verify payment status against Cashfree directly
 exports.verifyPayment = async (req, res) => {
     try {
         const { orderId } = req.body;
@@ -62,29 +74,52 @@ exports.verifyPayment = async (req, res) => {
         if (!order) return res.status(404).json({ error: 'Order not found' });
         if (order.userId.toString() !== userId) return res.status(403).json({ error: 'Forbidden' });
 
-        order.status = 'SUCCESSFUL';
-        await order.save();
+        // 1. Fetch live transaction data from Cashfree
+        const cashfreeStatus = await cashfreeService.getPaymentStatus(orderId);
+        
+        // Map Cashfree's internal status back to local DB schema
+        if (cashfreeStatus.status === 'SUCCESS') {
+            order.status = 'SUCCESSFUL';
+            await order.save();
 
-        const user = await Signup.findById(userId);
-        if (user) {
-            user.isPremium = true;
-            user.premiumTier = Math.max(user.premiumTier || 0, order.premiumTier || 1);
-            await user.save();
+            const user = await Signup.findById(userId);
+            if (user) {
+                user.isPremium = true;
+                user.premiumTier = Math.max(user.premiumTier || 0, order.premiumTier || 1);
+                await user.save();
+            }
+
+            return res.status(200).json({
+                orderId: order.orderId,
+                status: 'SUCCESSFUL',
+                amount: order.amount,
+                message: 'Payment verified successfully'
+            });
+        } else if (cashfreeStatus.status === 'PENDING') {
+            order.status = 'PENDING';
+            await order.save();
+            return res.status(200).json({
+                orderId: order.orderId,
+                status: 'PENDING',
+                message: 'Payment is still processing'
+            });
+        } else {
+            order.status = 'FAILED';
+            await order.save();
+            return res.status(200).json({
+                orderId: order.orderId,
+                status: 'FAILED',
+                message: 'Payment failed or was canceled'
+            });
         }
 
-        return res.status(200).json({
-            orderId: order.orderId,
-            status: 'SUCCESSFUL',
-            amount: order.amount,
-            message: 'Payment verified successfully'
-        });
-
     } catch (error) {
+        console.error("🔴 Error inside verifyPayment:", error.message);
         return res.status(500).json({ error: error.message });
     }
 };
 
-// Update payment status
+// Update payment status (For fallback/webhook use cases)
 exports.updatePaymentStatus = async (req, res) => {
     try {
         const { orderId, status } = req.body;
@@ -113,7 +148,6 @@ exports.updatePaymentStatus = async (req, res) => {
         return res.status(200).json({ message: 'Payment status updated', orderId: order.orderId, status });
 
     } catch (error) {
-
         return res.status(500).json({ error: error.message });
     }
 };
@@ -140,12 +174,11 @@ exports.getPremiumStatus = async (req, res) => {
         const user = await Signup.findById(userId);
         if (!user) return res.status(404).json({ error: 'User not found' });
 
-        const isPremium = Boolean(user.isPremium || req.user.isPremium || req.user.premiumTier > 0);
-        const premiumTier = user.premiumTier || req.user.premiumTier || 0;
+        const isPremium = Boolean(user.isPremium);
+        const premiumTier = user.premiumTier || 0;
 
         return res.status(200).json({ isPremium, premiumTier });
     } catch (error) {
-        console.error("Get Premium Status Error:", error.message);
         return res.status(500).json({ error: error.message });
     }
 };

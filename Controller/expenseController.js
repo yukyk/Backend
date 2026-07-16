@@ -1,5 +1,7 @@
 const Expense = require('../Models/expenseModel');
 const Signup = require('../Models/signupModel');
+const XLSX = require('xlsx');
+const { jsPDF } = require('jspdf');
 
 // Create expense for the authenticated user
 const addExpense = async (req, res) => {
@@ -52,17 +54,39 @@ const addExpense = async (req, res) => {
 
 // Get expenses belonging to authenticated user
 const getExpenses = async (req, res) => {
-  
   try {
     const userId = req.user && req.user.userId;
-    
-    if (!userId) {
 
+    if (!userId) {
       return res.status(401).json({ error: 'Unauthorized - no userId' });
     }
 
-    const expenses = await Expense.find({ userId })
-      .sort({ createdAt: -1 });
+    const { from, month, year, to } = req.query;
+    const query = { userId };
+    const now = new Date();
+
+    const parseDateInput = (value) => {
+      if (!value) return null;
+      const [yearValue, monthValue, dayValue] = value.split('-').map(Number);
+      if ([yearValue, monthValue, dayValue].some(Number.isNaN)) return null;
+      return new Date(yearValue, monthValue - 1, dayValue);
+    };
+
+    if (from || month || year) {
+      const startDate = parseDateInput(from);
+      const endDate = to ? parseDateInput(to) : new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+
+      if (startDate) {
+        query.createdAt = { $gte: startDate, $lte: endDate };
+      } else {
+        const selectedYear = year ? Number(year) : now.getFullYear();
+        const selectedMonth = month ? Number(month) - 1 : 0;
+        const periodStartDate = new Date(selectedYear, selectedMonth, 1, 0, 0, 0, 0);
+        query.createdAt = { $gte: periodStartDate, $lte: endDate };
+      }
+    }
+
+    const expenses = await Expense.find(query).sort({ createdAt: -1 });
 
     // Normalize response for the frontend: provide `id`, ISO dates and numeric amount
     const expensesWithType = expenses.map(e => {
@@ -78,8 +102,8 @@ const getExpenses = async (req, res) => {
     });
 
     res.json(expensesWithType);
-  } catch(err) {
-    res.status(500).json({error: "Error fetching expenses"});
+  } catch (err) {
+    res.status(500).json({ error: 'Error fetching expenses' });
   }
 };
 
@@ -222,6 +246,79 @@ const getInsights = async (req, res) => {
   }
 };
 
+const exportExpenses = async (req, res) => {
+  try {
+    const userId = req.user && req.user.userId;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized - no userId' });
+    }
+
+    const user = await Signup.findById(userId);
+    const premiumTier = req.user?.premiumTier || user?.premiumTier || 0;
+    if (premiumTier < 2) {
+      return res.status(403).json({ error: 'Premium Plus required for exports' });
+    }
+
+    const { format = 'excel', from, month, year } = req.query;
+    const query = { userId };
+    const now = new Date();
+
+    if (from) {
+      const [yearValue, monthValue, dayValue] = from.split('-').map(Number);
+      const startDate = new Date(yearValue, monthValue - 1, dayValue);
+      const endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+      query.createdAt = { $gte: startDate, $lte: endDate };
+    } else if (month || year) {
+      const selectedYear = year ? Number(year) : now.getFullYear();
+      const selectedMonth = month ? Number(month) - 1 : 0;
+      const startDate = new Date(selectedYear, selectedMonth, 1, 0, 0, 0, 0);
+      const endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+      query.createdAt = { $gte: startDate, $lte: endDate };
+    }
+
+    const expenses = await Expense.find(query).sort({ createdAt: -1 });
+    const rows = expenses.map(expense => ({
+      Date: expense.createdAt ? new Date(expense.createdAt).toLocaleString() : '',
+      Description: expense.description || '',
+      Category: expense.category || '',
+      Amount: Number(expense.amount || 0).toFixed(2),
+      Status: expense.status || ''
+    }));
+
+    if (format === 'pdf') {
+      const doc = new jsPDF();
+      doc.setFontSize(16);
+      doc.text('Expense Report', 14, 16);
+      doc.setFontSize(10);
+      let y = 28;
+      rows.forEach((row) => {
+        doc.text(`${row.Date} | ${row.Description} | ${row.Category} | ${row.Amount} | ${row.Status}`, 14, y);
+        y += 8;
+        if (y > 280) {
+          doc.addPage();
+          y = 16;
+        }
+      });
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', 'attachment; filename=expenses-report.pdf');
+      res.send(Buffer.from(doc.output('arraybuffer')));
+      return;
+    }
+
+    const worksheet = XLSX.utils.json_to_sheet(rows);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Expenses');
+    const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', 'attachment; filename=expenses-report.xlsx');
+    res.send(buffer);
+  } catch (err) {
+    console.error('Export error:', err);
+    res.status(500).json({ error: 'Export failed' });
+  }
+};
+
 const recalculateTotals = async () => {
   try {
     const users = await Signup.find();
@@ -248,5 +345,6 @@ module.exports = {
   getLeaderboard, 
   suggestCategory, 
   getInsights, 
-  recalculateTotals
+  recalculateTotals,
+  exportExpenses
 };
