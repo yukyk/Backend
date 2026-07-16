@@ -25,7 +25,7 @@ exports.forgotPassword = async (req, res) => {
     // Check rate limit - find recent active request
     const recentRequest = await ForgotPasswordRequests.findOne({
       userId: user._id,
-      isActive: true,
+      isActive: false,
       expiresAt: { $gt: new Date() }
     });
 
@@ -58,12 +58,13 @@ exports.forgotPassword = async (req, res) => {
 
     // Try to send email, but don't fail if it doesn't work
     try {
-      const { sendResetEmail } = require("../services/emailService");
-      await sendResetEmail(email, resetRequest._id);
-    } catch (emailError) {
-      console.log('⚠️ Email could not be sent, but request was created');
-      console.log('📧 Reset URL:', resetUrl);
-    }
+  const { sendResetEmail } = require("../services/emailService"); // Verify this path matches where your updated diagnostic code is!
+  await sendResetEmail(email, resetRequest._id);
+} catch (emailError) {
+  console.log('⚠️ Controller caught an email dispatch failure:');
+  console.error(emailError); // ◄ ADD THIS LINE HERE TO PRINT THE REAL ERROR
+  console.log('📧 Reset URL:', resetUrl);
+}
 
     res.status(200).json({ 
       message: "Password reset email sent. Check inbox/spam.",

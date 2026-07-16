@@ -1,62 +1,85 @@
-const SibApiV3Sdk = require('sib-api-v3-sdk');
 require('dotenv').config();
+const SibApiV3Sdk = require('sib-api-v3-sdk');
+const nodemailer = require('nodemailer');
 
-var defaultClient = SibApiV3Sdk.ApiClient.instance;
-
-var apiKey = defaultClient.authentications['api-key'];
-apiKey.apiKey = process.env.API_KEY;
-
-var apiInstance = new SibApiV3Sdk.TransactionalEmailsApi();
+// Initialize Sendinblue client only when API key is present
+let sendinblueInstance = null;
+if (process.env.API_KEY) {
+  try {
+    const defaultClient = SibApiV3Sdk.ApiClient.instance;
+    const apiKeyAuth = defaultClient.authentications['api-key'];
+    apiKeyAuth.apiKey = process.env.API_KEY;
+    sendinblueInstance = new SibApiV3Sdk.TransactionalEmailsApi();
+  } catch (err) {
+    console.warn('⚠️ Could not initialize Sendinblue client:', err.message);
+  }
+}
 
 async function sendResetEmail(toEmail, requestId) {
   const sender = {
     name: 'Advance Expense Tracker',
-    email: 'yusufkhambaty1@gmail.com'
+    email: process.env.FROM_EMAIL || 'no-reply@advance-expense.local'
   };
 
-  const receivers = [
-    {
-      email: toEmail
-    }
-  ];
-
-  // Use UUID-based reset URL
-  const baseUrl = process.env.BASE_URL;
+  const baseUrl = process.env.BASE_URL || `http://localhost:${process.env.PORT || 3000}`;
   const resetUrl = `${baseUrl}/password/resetpassword/${requestId}`;
 
-  const sendSmtpEmail = {
-    sender,
-    to: receivers,
-    subject: 'Password Reset - Advance Expense Tracker',
-    htmlContent: `
-      <html>
-      <body>
-        <h1>Reset Your Password</h1>
-        <p>Hello,</p>
-        <p>You requested a password reset for your Advance Expense Tracker account.</p>
-        <p>Click the button below to reset your password:</p>
-        <p style="margin: 30px 0;">
-          <a href="${resetUrl}" style="background: #635BFF; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; font-weight: 600;">Reset Password</a>
-        </p>
-        <p>Or copy and paste this link into your browser:</p>
-        <p style="word-break: break-all; color: #666;">${resetUrl}</p>
-        <p style="color: #888; font-size: 12px; margin-top: 30px;">This link will expire in 1 hour. If you didn't request this password reset, please ignore this email.</p>
-      </body>
-      </html>
-    `,
-    textContent: `Reset Password: ${resetUrl}\n\nThis link will expire in 1 hour.`
-  };
+  const html = `<html><body><h1>Reset Your Password</h1><p>Click below:</p><a href="${resetUrl}">Reset Password</a></body></html>`;
+  const text = `Reset Password: ${resetUrl}`;
 
-  try {
-    const response = await apiInstance.sendTransacEmail(sendSmtpEmail);
-    console.log('✅ Email sent to ' + toEmail);
-    return response;
-  } catch (error) {
-    console.error('❌ Email error for ' + toEmail + ':', error.response ? error.response.body : error.message);
-    // Don't throw - we still created the request even if email fails
-    console.log('📧 Reset URL (in case email fails):', resetUrl);
-    return null;
+  console.log('🔍 [DIAGNOSTIC] starting sendResetEmail...');
+  console.log('🔍 [DIAGNOSTIC] sendinblueInstance active:', !!sendinblueInstance);
+  console.log('🔍 [DIAGNOSTIC] SMTP_HOST present:', !!process.env.SMTP_HOST);
+
+  // 1) Try Sendinblue / Brevo API
+  if (sendinblueInstance) {
+    try {
+      const sendSmtpEmail = new SibApiV3Sdk.SendSmtpEmail();
+      sendSmtpEmail.sender = sender;
+      sendSmtpEmail.to = [{ email: toEmail }];
+      sendSmtpEmail.subject = 'Password Reset - Advance Expense Tracker';
+      sendSmtpEmail.htmlContent = html;
+      sendSmtpEmail.textContent = text;
+
+      const response = await sendinblueInstance.sendTransacEmail(sendSmtpEmail);
+      console.log('✅ Sendinblue email sent to ' + toEmail);
+      return response;
+    } catch (error) {
+      console.error('❌ Sendinblue API Error:', error?.response?.body || error.message);
+    }
   }
+
+  // 2) Fallback to SMTP via nodemailer
+  if (process.env.SMTP_HOST && process.env.SMTP_USER) {
+    try {
+      console.log(`🔌 Attempting SMTP connection to ${process.env.SMTP_HOST}...`);
+      const transporter = nodemailer.createTransport({
+        host: process.env.SMTP_HOST,
+        port: parseInt(process.env.SMTP_PORT || '587', 10),
+        secure: (process.env.SMTP_SECURE === 'true'),
+        auth: {
+          user: process.env.SMTP_USER,
+          pass: process.env.SMTP_PASS
+        }
+      });
+
+      const info = await transporter.sendMail({
+        from: `${sender.name} <${sender.email}>`,
+        to: toEmail,
+        subject: 'Password Reset - Advance Expense Tracker',
+        html,
+        text
+      });
+
+      console.log('✅ SMTP email sent to', toEmail, 'messageId=', info.messageId);
+      return info;
+    } catch (smtpErr) {
+      console.error('❌ SMTP Error details:', smtpErr);
+    }
+  }
+
+  console.warn('⚠️ Both email methods failed or were unconfigured.');
+  return null;
 }
 
 module.exports = { sendResetEmail };

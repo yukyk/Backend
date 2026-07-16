@@ -1,4 +1,10 @@
-console.log('expense script loaded');
+console.log('Expense tracker script loaded');
+
+// ==================== GLOBAL STATE MANAGEMENT ====================
+// Uses existing global state if already defined by the environment, otherwise initializes
+window.allExpenses = window.allExpenses || [];
+window.currentViewType = window.currentViewType || 'expense';
+let _currentlyEditingId = null;
 
 // ==================== TOAST NOTIFICATIONS ====================
 function showToast(message, type = 'success') {
@@ -31,44 +37,31 @@ function showToast(message, type = 'success') {
   }, 3000);
 }
 
-// Make showToast available globally
 window.showToast = showToast;
 
-// Animation styles
+// Inject Animation Styles Globally
 const style = document.createElement('style');
 style.textContent = `
-  @keyframes slideIn {
-    from { transform: translateX(100%); opacity: 0; }
-    to { transform: translateX(0); opacity: 1; }
-  }
-  @keyframes slideOut {
-    from { transform: translateX(0); opacity: 1; }
-    to { transform: translateX(100%); opacity: 0; }
-  }
+  @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+  @keyframes slideOut { from { transform: translateX(0); opacity: 1; } to { transform: translateX(100%); opacity: 0; } }
 `;
 document.head.appendChild(style);
 
-// ==================== AUTH ====================
+// ==================== AUTHENTICATION UTILITIES ====================
 function getToken() {
   return localStorage.getItem('token');
 }
-
-// Make getToken available globally
 window.getToken = getToken;
 
 function checkAuth() {
   const token = getToken();
   if (!token) {
-    if (typeof showToast === 'function') {
-      showToast('Not authenticated. Please login first.', 'warning');
-    }
+    showToast('Not authenticated. Please login first.', 'warning');
     window.location.href = '/login';
     return false;
   }
   return true;
 }
-
-// Make checkAuth available globally
 window.checkAuth = checkAuth;
 
 function isPremiumUser() {
@@ -81,70 +74,71 @@ function isPremiumUser() {
     return false;
   }
 }
+window.isPremiumUser = isPremiumUser;
 
 function applyPremiumBackground() {
   if (isPremiumUser()) {
     document.body.style.background = 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)';
   }
 }
-
-window.isPremiumUser = isPremiumUser;
 window.applyPremiumBackground = applyPremiumBackground;
 
 function logout() {
   localStorage.removeItem('token');
   window.location.href = '/login';
 }
-
-// Make logout available globally
 window.logout = logout;
 
-// ==================== AXIOS SETUP ====================
-axios.interceptors.request.use((config) => {
-  const token = getToken();
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
-
-axios.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      showToast('Session expired - please login again', 'error');
-      setTimeout(() => logout(), 1500);
+// ==================== AXIOS INTERCEPTORS ====================
+if (window.axios) {
+  axios.interceptors.request.use((config) => {
+    const token = getToken();
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
     }
-    return Promise.reject(error);
-  }
-);
+    return config;
+  });
 
-// ==================== GLOBAL STATE ====================
-var allExpenses = allExpenses || [];
-var currentViewType = currentViewType || 'expense';
+  axios.interceptors.response.use(
+    (response) => response,
+    (error) => {
+      if (error.response?.status === 401) {
+        showToast('Session expired - please login again', 'error');
+        setTimeout(() => logout(), 1500);
+      }
+      return Promise.reject(error);
+    }
+  );
+}
 
-// ==================== FETCH DATA ====================
+// ==================== CORE API DATA FETCHING ====================
 async function fetchExpenses() {
   try {
     const res = await axios.get('/api/auth/get-expenses');
-    allExpenses = res.data || [];
-    const totalExpense = allExpenses.reduce((sum, e) => sum + parseFloat(e.amount || 0), 0);
+    window.allExpenses = res.data || [];
+    
+    const totalExpense = window.allExpenses.reduce((sum, e) => sum + parseFloat(e.amount || 0), 0);
     const totalExpensesEl = document.getElementById('totalExpenses');
     if (totalExpensesEl) {
       totalExpensesEl.textContent = `$${totalExpense.toFixed(2)}`;
     }
-    if (currentViewType === 'expense') {
-      renderExpenses(allExpenses);
+    
+    // Explicit reference to the locally scoped or global render wrapper
+    if (window.currentViewType === 'expense') {
+      if (typeof window.renderEntries === 'function') {
+        window.renderEntries(window.allExpenses);
+      } else {
+        renderExpenses(window.allExpenses);
+      }
     }
   } catch(err) {
     console.error('Fetch expenses error:', err);
-    if (typeof showToast === 'function') {
-      showToast('Could not load expenses', 'error');
-    }
+    showToast('Could not load expenses', 'error');
   }
 }
+window.fetchExpenses = fetchExpenses;
 
-// ==================== RENDER LISTS ====================
+// ==================== LIST RENDERING COMPONENT ====================
 function renderExpenses(items) {
   const expenseList = document.getElementById('expenseList');
   if (!expenseList) return;
@@ -164,33 +158,40 @@ function renderExpenses(items) {
     expenseList.appendChild(li);
   });
 }
+window.renderExpenses = renderExpenses;
 
 function createListItem(item, type) {
+  const itemId = item.id || item._id || '';
   const li = document.createElement('li');
   li.style.cssText = 'padding: 12px 0; border-bottom: 1px solid #eef2f6;';
+  li.dataset.editId = itemId;
 
   const row = document.createElement('div');
   row.style.cssText = 'display: flex; justify-content: space-between; align-items: center; gap: 12px;';
 
-  // Left section
+  // Left Section (Description & Meta details)
   const left = document.createElement('div');
-  
+  left.className = 'left-section';
+
   const desc = document.createElement('div');
-  desc.textContent = item.description || '';
+  desc.className = 'desc-text';
   desc.style.cssText = 'font-weight: 600; color: #1a1f36;';
-  
+  desc.textContent = item.description || '';
+
   const meta = document.createElement('div');
+  meta.className = 'meta-text';
   meta.style.cssText = 'color: #6b7385; font-size: 13px;';
+  
+  const statusBadge = item.status === 'pending' ? '<span style="background:#fbbf24;color:white;padding:2px 6px;border-radius:3px;font-size:11px;margin-right:5px;">⏳ Pending</span>' : '';
   const dateStr = item.createdAt ? new Date(item.createdAt).toLocaleString() : '';
-  const statusBadge = item.status === 'pending' ? 
-    '<span style="background:#fbbf24;color:white;padding:2px 6px;border-radius:3px;font-size:11px;">⏳ Pending</span>' : '';
-  meta.innerHTML = `${item.category || ''} ${statusBadge} • ${dateStr}`;
+  meta.innerHTML = `${statusBadge}${item.category || ''} • ${dateStr}`;
   
   left.appendChild(desc);
   left.appendChild(meta);
 
-  // Right section
+  // Right Section (Amount & Actions)
   const right = document.createElement('div');
+  right.className = 'right-section';
   right.style.textAlign = 'right';
   
   const amt = document.createElement('div');
@@ -201,27 +202,40 @@ function createListItem(item, type) {
   const actions = document.createElement('div');
   actions.style.marginTop = '6px';
   
+  const editBtn = document.createElement('button');
+  editBtn.textContent = '✏️ Edit';
+  editBtn.style.cssText = 'background: #f8f8f7; border: 1px solid #e3e8ee; padding: 6px 8px; border-radius: 6px; cursor: pointer; margin-right: 6px; color: #1a1f36;';
+  
+  editBtn.addEventListener('click', () => {
+    if (typeof window.startInlineEdit === 'function') {
+      window.startInlineEdit(item, li);
+    } else {
+      startInlineEditLocal(item, li);
+    }
+  });
+
   const delBtn = document.createElement('button');
-  delBtn.textContent = 'Delete';
+  delBtn.textContent = '🗑️ Delete';
   delBtn.style.cssText = 'background: #fff; border: 1px solid #e3e8ee; padding: 6px 8px; border-radius: 6px; cursor: pointer;';
   
   delBtn.addEventListener('click', async () => {
     if (!confirm(`Delete ${type} $${value}?`)) return;
-    
     try {
       const endpoint = type === 'income' ? '/api/auth/delete-income' : '/api/auth/delete-expense';
-      await axios.delete(`${endpoint}/${item._id}`);
-      if (typeof showToast === 'function') {
-        showToast(`✅ ${type === 'income' ? 'Income' : 'Expense'} deleted!`, 'success');
+      await axios.delete(`${endpoint}/${itemId}`);
+      showToast(`${type === 'income' ? 'Income' : 'Expense'} deleted!`, 'success');
+      
+      if (typeof window.fetchAndRenderEntries === 'function') {
+        window.fetchAndRenderEntries();
+      } else {
+        fetchExpenses();
       }
-      fetchExpenses();
     } catch(err) {
-      if (typeof showToast === 'function') {
-        showToast('❌ Delete failed', 'error');
-      }
+      showToast('Delete failed', 'error');
     }
   });
   
+  actions.appendChild(editBtn);
   actions.appendChild(delBtn);
   right.appendChild(amt);
   right.appendChild(actions);
@@ -229,18 +243,114 @@ function createListItem(item, type) {
   row.appendChild(left);
   row.appendChild(right);
   li.appendChild(row);
-  
+
   return li;
 }
 
-// ==================== VIEW TYPE ====================
+// ==================== INLINE EDITING UTILITY ====================
+function startInlineEditLocal(item, rowElement) {
+  if (!rowElement) return;
+  const itemId = item.id || item._id;
+  
+  if (_currentlyEditingId) {
+    cancelInlineEditLocal();
+  }
+  _currentlyEditingId = itemId;
+
+  rowElement.classList.add('editing-row');
+  rowElement._originalHTML = rowElement.innerHTML;
+
+  const editContainer = document.createElement('div');
+  editContainer.style.cssText = 'display:flex;flex-direction:column;gap:8px;padding:8px 0;width:100%;';
+
+  const inputRow = document.createElement('div');
+  inputRow.style.cssText = 'display:flex;gap:8px;';
+
+  const descInput = document.createElement('input');
+  descInput.type = 'text';
+  descInput.value = item.description || '';
+  descInput.className = 'inline-edit-input inline-edit-desc';
+  descInput.style.cssText = 'flex:1;padding:8px;border:1px solid #e3e8ee;border-radius:6px;';
+
+  const amtInput = document.createElement('input');
+  amtInput.type = 'number';
+  amtInput.step = '0.01';
+  amtInput.value = item.amount || 0;
+  amtInput.className = 'inline-edit-input inline-edit-amount';
+  amtInput.style.cssText = 'width:120px;padding:8px;border:1px solid #e3e8ee;border-radius:6px;text-align:right;';
+
+  inputRow.appendChild(descInput);
+  inputRow.appendChild(amtInput);
+
+  const actionsRow = document.createElement('div');
+  actionsRow.style.cssText = 'display:flex;gap:8px;justify-content:flex-end;';
+
+  const saveBtn = document.createElement('button');
+  saveBtn.textContent = 'Save';
+  saveBtn.style.cssText = 'background:#635BFF;color:white;padding:8px 12px;border-radius:6px;border:none;cursor:pointer;';
+  
+  saveBtn.addEventListener('click', async () => {
+    const newDescription = descInput.value.trim();
+    const newAmount = parseFloat(amtInput.value);
+    
+    if (!newDescription) { showToast('Description required', 'error'); return; }
+    if (isNaN(newAmount) || newAmount < 0) { showToast('Invalid amount', 'error'); return; }
+    
+    try {
+      await axios.put(`/api/auth/update-expense/${itemId}`, { amount: newAmount, description: newDescription });
+      showToast('Entry updated', 'success');
+      _currentlyEditingId = null;
+      
+      if (typeof window.fetchAndRenderEntries === 'function') {
+        window.fetchAndRenderEntries();
+      } else {
+        fetchExpenses();
+      }
+    } catch (err) {
+      console.error('Inline save failed', err);
+      showToast('Update failed', 'error');
+    }
+  });
+
+  const cancelBtn = document.createElement('button');
+  cancelBtn.textContent = 'Cancel';
+  cancelBtn.style.cssText = 'background:#fff;border:1px solid #e3e8ee;padding:8px 12px;border-radius:6px;cursor:pointer;';
+  cancelBtn.addEventListener('click', () => cancelInlineEditLocal());
+
+  actionsRow.appendChild(saveBtn);
+  actionsRow.appendChild(cancelBtn);
+
+  editContainer.appendChild(inputRow);
+  editContainer.appendChild(actionsRow);
+
+  rowElement.innerHTML = '';
+  rowElement.appendChild(editContainer);
+  descInput.focus();
+  descInput.select();
+}
+window.startInlineEditLocal = startInlineEditLocal;
+
+function cancelInlineEditLocal() {
+  if (!_currentlyEditingId) return;
+  const row = document.querySelector(`[data-edit-id="${_currentlyEditingId}"]`);
+  if (row && row._originalHTML) {
+    row.innerHTML = row._originalHTML;
+    row.classList.remove('editing-row');
+  }
+  _currentlyEditingId = null;
+}
+window.cancelInlineEditLocal = cancelInlineEditLocal;
+
+// ==================== VIEW VIEW FILTER HANDLING ====================
 function setViewType(type) {
+  window.currentViewType = type;
   if (type === 'expense') {
     fetchExpenses();
   }
 }
+window.setViewType = setViewType;
 
-// ==================== LEADERBOARD ====================
+// ==================== LEADERBOARD & MODALS ====================
 function handleLeaderboard() {
   const leaderboardBtn = document.getElementById('leaderboardBtn');
   if (leaderboardBtn?.classList.contains('locked')) {
@@ -249,11 +359,11 @@ function handleLeaderboard() {
     showLeaderboard();
   }
 }
+window.handleLeaderboard = handleLeaderboard;
 
 function goToPremium() {
   window.location.href = '/payment-options';
 }
-
 window.goToPremium = goToPremium;
 
 async function showLeaderboard() {
@@ -262,6 +372,7 @@ async function showLeaderboard() {
     const leaderboard = res.data;
     
     const list = document.getElementById('leaderboardList');
+    if (!list) return;
     list.innerHTML = '';
     
     if (leaderboard.length === 0) {
@@ -280,7 +391,8 @@ async function showLeaderboard() {
       list.appendChild(ul);
     }
     
-    document.getElementById('leaderboardModal').style.display = 'flex';
+    const modal = document.getElementById('leaderboardModal');
+    if (modal) modal.style.display = 'flex';
   } catch (err) {
     if (err.response?.status === 403) {
       showToast('Buy premium membership to access the leaderboard.', 'info');
@@ -291,12 +403,15 @@ async function showLeaderboard() {
     }
   }
 }
+window.showLeaderboard = showLeaderboard;
 
 function closeModal() {
-  document.getElementById('leaderboardModal').style.display = 'none';
+  const modal = document.getElementById('leaderboardModal');
+  if (modal) modal.style.display = 'none';
 }
+window.closeModal = closeModal;
 
-// ==================== AI FEATURES ====================
+// ==================== AI EXTENSIONS ====================
 let aiSuggestionTimeout;
 
 function setupAISuggestion() {
@@ -304,7 +419,7 @@ function setupAISuggestion() {
   const categoryEl = document.getElementById('category');
   
   if (descriptionEl && categoryEl) {
-    descriptionEl.addEventListener('input', async () => {
+    descriptionEl.addEventListener('input', () => {
       const desc = descriptionEl.value.trim();
       if (desc.length < 3) return;
 
@@ -327,18 +442,17 @@ function setupAISuggestion() {
 
 function showAISuggestion(category) {
   const categoryEl = document.getElementById('category');
-  let suggEl = document.getElementById('aiSuggestion');
+  if (!categoryEl) return;
   
-  if (!suggEl && categoryEl) {
+  let suggEl = document.getElementById('aiSuggestion');
+  if (!suggEl) {
     suggEl = document.createElement('div');
     suggEl.id = 'aiSuggestion';
     suggEl.style.cssText = 'color: #10b981; font-size: 14px; margin-top: 4px; font-style: italic;';
     categoryEl.parentNode.appendChild(suggEl);
   }
   
-  if (suggEl) {
-    suggEl.textContent = `🤖 AI suggests: ${category}`;
-  }
+  suggEl.textContent = `🤖 AI suggests: ${category}`;
 }
 
 async function handleInsights() {
@@ -347,12 +461,13 @@ async function handleInsights() {
   try {
     const res = await axios.get('/api/auth/insights');
     const modal = document.createElement('div');
+    modal.className = 'modal-backstage';
     modal.innerHTML = `
-      <div style="display:flex;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:1000;justify-content:center;align-items:center;">
-        <div style="background:white;padding:20px;border-radius:8px;max-width:90%;max-height:70%;overflow:auto;">
+      <div style="display:flex;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:10000;justify-content:center;align-items:center;">
+        <div style="background:white;padding:20px;border-radius:8px;max-width:90%;max-height:70%;overflow:auto;box-shadow: 0 4px 20px rgba(0,0,0,0.2);">
           <h3>🧠 AI Spending Insights</h3>
-          <pre style="white-space:pre-wrap;font-family:inherit;">${res.data.insights}</pre>
-          <button onclick="this.closest('div').parentElement.remove()" style="margin-top:20px;padding:10px;background:#635BFF;color:white;border:none;border-radius:5px;cursor:pointer;">Close</button>
+          <pre style="white-space:pre-wrap;font-family:inherit;margin-top:10px;">${res.data.insights}</pre>
+          <button onclick="this.closest('div').parentElement.remove()" style="margin-top:20px;padding:10px 20px;background:#635BFF;color:white;border:none;border-radius:5px;cursor:pointer;font-weight:600;">Close</button>
         </div>
       </div>
     `;
@@ -361,60 +476,4 @@ async function handleInsights() {
     showToast(err.response?.data?.error || 'Insights failed', 'error');
   }
 }
-
-// ==================== FORM HANDLERS ====================
-document.addEventListener('DOMContentLoaded', function() {
-
-  // ✅ FIX: Attach click handler ONCE when page loads
-  const leaderboardBtn = document.getElementById('leaderboardBtn');
-  if (leaderboardBtn) {
-    leaderboardBtn.addEventListener('click', handleLeaderboard);
-  } else {
-    console.warn('⚠️ leaderboardBtn not found');
-  }
-
-  const premiumBtn = document.getElementById('premiumBtn');
-  if (premiumBtn) {
-    premiumBtn.addEventListener('click', goToPremium);
-  } else {
-    console.warn('⚠️ premiumBtn not found');
-  }
-
-  // ==================== FORMS ====================
-
-  // Expense form
-  const expenseForm = document.getElementById('expenseForm');
-  if (expenseForm) {
-    expenseForm.addEventListener('submit', async function(e) {
-      e.preventDefault();
-      if (!checkAuth()) return;
-
-      const amount = parseFloat(document.getElementById('amount')?.value?.trim());
-      const description = document.getElementById('description')?.value?.trim();
-      const category = document.getElementById('category')?.value?.trim() || 'Uncategorized';
-
-      if (!amount || !description || amount <= 0) {
-        showToast('❌ Please enter valid amount and description', 'error');
-        return;
-      }
-
-      try {
-        await axios.post('/api/auth/add-expense', { amount, description, category, status: 'pending' });
-        expenseForm.reset();
-        fetchExpenses();
-        showToast('✅ Expense added successfully!', 'success');
-      } catch (err) {
-        showToast(err.response?.data?.error || 'Failed to add expense', 'error');
-      }
-    });
-  }
-
-  // Setup AI
-  setupAISuggestion();
-
-  // Initial load
-  if (checkAuth()) {
-    fetchExpenses();
-    applyPremiumBackground();
-  }
-});
+window.handleInsights = handleInsights;

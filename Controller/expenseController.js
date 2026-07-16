@@ -63,14 +63,20 @@ const getExpenses = async (req, res) => {
 
     const expenses = await Expense.find({ userId })
       .sort({ createdAt: -1 });
-    
-    // Add entryType field to each expense
-    const expensesWithType = expenses.map(e => ({
-      ...e.toObject(),
-      entryType: 'expense'
-    }));
-    
-    
+
+    // Normalize response for the frontend: provide `id`, ISO dates and numeric amount
+    const expensesWithType = expenses.map(e => {
+      const obj = e.toObject();
+      return {
+        ...obj,
+        id: obj._id ? obj._id.toString() : undefined,
+        _id: obj._id ? obj._id.toString() : undefined,
+        amount: typeof obj.amount === 'string' ? parseFloat(obj.amount) : obj.amount,
+        createdAt: obj.createdAt ? new Date(obj.createdAt).toISOString() : null,
+        entryType: 'expense'
+      };
+    });
+
     res.json(expensesWithType);
   } catch(err) {
     res.status(500).json({error: "Error fetching expenses"});
