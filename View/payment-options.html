@@ -167,6 +167,32 @@
       background: #e3e8ee;
     }
 
+    .downgrade-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 10px 16px;
+      margin-bottom: 25px;
+      background: #fff5f5;
+      color: #c0392b;
+      border: 1px solid #f5c6cb;
+      border-radius: 8px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .downgrade-btn:hover {
+      background: #ffe9e6;
+    }
+
+    .downgrade-btn:disabled {
+      background: #f0f2f5;
+      color: #8792a2;
+      border-color: #dfe3e8;
+      cursor: not-allowed;
+    }
+
     .alert {
       padding: 15px;
       border-radius: 8px;
@@ -215,6 +241,10 @@
     <div class="premium-header">
       <h1>Choose Your Premium Plan</h1>
       <p>Unlock advanced features and analytics</p>
+    </div>
+
+    <div style="text-align: center;">
+      <button type="button" id="downgradeButton" class="downgrade-btn" onclick="downgradeMembership()">⬇ Switch to Free</button>
     </div>
 
     <div id="alertMessage" class="alert"></div>
@@ -301,6 +331,52 @@
   }, (error) => {
     return Promise.reject(error);
   });
+
+  async function loadMembershipState() {
+    try {
+      const response = await axios.get('/api/payment/premium-status');
+      const button = document.getElementById('downgradeButton');
+      if (!button) return;
+      const isPremium = Boolean(response.data?.isPremium);
+      button.disabled = !isPremium;
+      button.textContent = isPremium ? '⬇ Switch to Free' : '✓ Free Plan';
+    } catch (error) {
+      console.error('Membership state error:', error);
+    }
+  }
+
+  async function downgradeMembership() {
+    if (!checkAuth()) return;
+    if (!confirm('Switch your account back to the free plan and remove premium access now?')) return;
+
+    const button = document.getElementById('downgradeButton');
+    if (button) {
+      button.disabled = true;
+      button.textContent = '⏳ Switching...';
+    }
+
+    try {
+      const response = await axios.post('/api/payment/downgrade-membership');
+      const { token } = response.data;
+      if (token) {
+        localStorage.setItem('token', token);
+      }
+      showAlert('You are now on the free plan.', 'success');
+      if (button) {
+        button.disabled = true;
+        button.textContent = '✓ Free Plan';
+      }
+      setTimeout(() => {
+        window.location.href = '/expense';
+      }, 1200);
+    } catch (error) {
+      showAlert(error.response?.data?.error || 'Unable to switch to the free plan.', 'error');
+      if (button) {
+        button.disabled = false;
+        button.textContent = '⬇ Switch to Free';
+      }
+    }
+  }
 
   async function selectPlan(amount) {
     if (!checkAuth()) return;
@@ -400,6 +476,7 @@
   // Auto-run verification when landed back via returnUrl
   window.addEventListener('load', () => {
     if (checkAuth()) {
+      loadMembershipState();
       const urlParams = new URLSearchParams(window.location.search);
       const orderId = urlParams.get('order_id');
       if (orderId) {

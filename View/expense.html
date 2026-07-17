@@ -58,6 +58,34 @@
       margin-left: 8px;
     }
 
+    .downgrade-btn {
+      background: #fff5f5;
+      color: #c0392b;
+      border: 1px solid #f5c6cb;
+      padding: 10px 16px;
+      border-radius: 8px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .downgrade-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(192, 57, 43, 0.18);
+    }
+
+    .downgrade-btn:disabled {
+      background: #f0f2f5;
+      color: #8792a2;
+      border-color: #dfe3e8;
+      cursor: not-allowed;
+      box-shadow: none;
+      transform: none;
+    }
+
     .premium-badge {
       background: #27ae60;
       color: white;
@@ -358,6 +386,9 @@
           <button type="button" class="premium-btn" id="premiumBtn" onclick="goToPremium()">
             💎 Buy Premium
           </button>
+          <button type="button" class="downgrade-btn" id="downgradeBtn" onclick="downgradeMembership()">
+            ⬇ Switch to Free
+          </button>
         </div>
       </div>
 
@@ -407,6 +438,8 @@
         <div style="display: flex; justify-content: flex-end; align-items: center; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
           <label for="dateRangeStart" style="font-weight: 600; color: #6b7385;">From:</label>
           <input type="date" id="dateRangeStart" onchange="applyDateRangeFilter()" style="padding: 8px 12px; border: 2px solid #e3e8ee; border-radius: 6px; font-size: 14px; cursor: pointer;">
+          <label for="dateRangeEnd" style="font-weight: 600; color: #6b7385;">To:</label>
+          <input type="date" id="dateRangeEnd" onchange="applyDateRangeFilter()" style="padding: 8px 12px; border: 2px solid #e3e8ee; border-radius: 6px; font-size: 14px; cursor: pointer;">
           <label for="monthFilter" style="font-weight: 600; color: #6b7385;">Month:</label>
           <select id="monthFilter" onchange="applyDateRangeFilter()" style="padding: 8px 12px; border: 2px solid #e3e8ee; border-radius: 6px; font-size: 14px; cursor: pointer;">
             <option value="">All months</option>
@@ -565,8 +598,12 @@
     function getExpenseRequestParams() {
       const params = {};
       const startDate = getSelectedStartDate();
+      const endDate = getSelectedEndDate();
       if (startDate) {
         params.from = `${startDate.getFullYear()}-${String(startDate.getMonth() + 1).padStart(2, '0')}-${String(startDate.getDate()).padStart(2, '0')}`;
+      }
+      if (endDate) {
+        params.to = `${endDate.getFullYear()}-${String(endDate.getMonth() + 1).padStart(2, '0')}-${String(endDate.getDate()).padStart(2, '0')}`;
       }
       const monthValue = document.getElementById('monthFilter').value;
       const yearValue = document.getElementById('yearFilter').value;
@@ -584,6 +621,7 @@
 
     function resetDateFilters() {
       document.getElementById('dateRangeStart').value = '';
+      document.getElementById('dateRangeEnd').value = '';
       document.getElementById('monthFilter').value = '';
       document.getElementById('yearFilter').value = '';
       currentCategory = 'all';
@@ -609,26 +647,47 @@
       return null;
     }
 
-    function getFilterLabel() {
-      const dateValue = document.getElementById('dateRangeStart').value;
+    function getSelectedEndDate() {
+      const dateValue = document.getElementById('dateRangeEnd').value;
       if (dateValue) {
-        const dateObj = new Date(dateValue + 'T00:00:00');
-        return `Expenses from ${dateObj.toLocaleDateString()} to today`;
+        const [year, month, day] = dateValue.split('-').map(Number);
+        return new Date(year, month - 1, day, 23, 59, 59, 999);
       }
 
       const monthValue = document.getElementById('monthFilter').value;
       const yearValue = document.getElementById('yearFilter').value;
-      if (monthValue && yearValue) {
-        const selectedMonth = new Date(Number(yearValue), Number(monthValue) - 1, 1);
-        return `Expenses from ${selectedMonth.toLocaleString('en-US', { month: 'long' })} ${yearValue} to today`;
+      if (monthValue || yearValue) {
+        const selectedYear = yearValue ? Number(yearValue) : new Date().getFullYear();
+        const selectedMonth = monthValue ? Number(monthValue) - 1 : 0;
+        const lastDay = new Date(selectedYear, selectedMonth + 1, 0);
+        return new Date(selectedYear, selectedMonth, lastDay.getDate(), 23, 59, 59, 999);
+      }
+      return null;
+    }
+
+    function getFilterLabel() {
+      const startDateValue = document.getElementById('dateRangeStart').value;
+      const endDateValue = document.getElementById('dateRangeEnd').value;
+      const monthValue = document.getElementById('monthFilter').value;
+      const yearValue = document.getElementById('yearFilter').value;
+
+      if (startDateValue || endDateValue) {
+        const startLabel = startDateValue ? new Date(startDateValue + 'T00:00:00').toLocaleDateString() : 'start';
+        const endLabel = endDateValue ? new Date(endDateValue + 'T00:00:00').toLocaleDateString() : 'today';
+        return `Expenses from ${startLabel} to ${endLabel}`;
       }
 
-      if (yearValue) return `Expenses from ${yearValue} to today`;
+      if (monthValue && yearValue) {
+        const selectedMonth = new Date(Number(yearValue), Number(monthValue) - 1, 1);
+        return `Expenses from ${selectedMonth.toLocaleString('en-US', { month: 'long' })} ${yearValue}`;
+      }
+
+      if (yearValue) return `Expenses from ${yearValue}`;
 
       if (monthValue) {
         const currentYear = new Date().getFullYear();
         const selectedMonth = new Date(currentYear, Number(monthValue) - 1, 1);
-        return `Expenses from ${selectedMonth.toLocaleString('en-US', { month: 'long' })} to today`;
+        return `Expenses from ${selectedMonth.toLocaleString('en-US', { month: 'long' })}`;
       }
       return '';
     }
@@ -675,6 +734,7 @@
         
         const premiumBtn = document.getElementById('premiumBtn');
         const leaderboardBtn = document.getElementById('leaderboardBtn');
+        const downgradeBtn = document.getElementById('downgradeBtn');
         
         if (isPremium) {
           const tierNames = ['Free', 'Basic', 'Plus', 'Elite'];
@@ -692,6 +752,10 @@
           
           leaderboardBtn.classList.remove('locked');
           leaderboardBtn.innerHTML = '🏆 Leaderboard';
+          if (downgradeBtn) {
+            downgradeBtn.disabled = false;
+            downgradeBtn.textContent = '⬇ Switch to Free';
+          }
           const exportBtn = document.getElementById('exportBtn');
           if (exportBtn) {
             exportBtn.style.opacity = premiumTier >= 2 ? '1' : '0.6';
@@ -702,6 +766,10 @@
           leaderboardBtn.classList.add('locked');
           leaderboardBtn.innerHTML = '🔒 Leaderboard';
           premiumBtn.classList.add('faded');
+          if (downgradeBtn) {
+            downgradeBtn.disabled = true;
+            downgradeBtn.textContent = '✓ Free Plan';
+          }
           const exportBtn = document.getElementById('exportBtn');
           if (exportBtn) {
             exportBtn.style.opacity = '0.6';
@@ -840,25 +908,40 @@
     }
     window.exportExpenses = exportExpenses;
 
+    function getEmptyStateMessage() {
+      const startDate = getSelectedStartDate();
+      const monthValue = document.getElementById('monthFilter').value;
+      const yearValue = document.getElementById('yearFilter').value;
+
+      if (startDate || monthValue || yearValue) {
+        return 'No expenses found for the selected filter';
+      }
+
+      return 'No expenses yet';
+    }
+
     function renderEntries(items) {
       const list = document.getElementById('expenseList');
       list.innerHTML = '';
+      const totalExpensesEl = document.getElementById('totalExpenses');
+      if (totalExpensesEl) {
+        totalExpensesEl.textContent = '$0.00';
+      }
 
       if (!items || items.length === 0) {
-        showEmptyMessage(list, 'No expenses yet');
+        showEmptyMessage(list, getEmptyStateMessage());
         return;
       }
 
       const filteredItems = filterByCategory(items);
       filteredItemsData = filteredItems;
       const totalExpense = filteredItems.reduce((sum, e) => sum + parseFloat(e.amount || 0), 0);
-      const totalExpensesEl = document.getElementById('totalExpenses');
       if (totalExpensesEl) {
         totalExpensesEl.textContent = '$' + totalExpense.toFixed(2);
       }
       
       if (filteredItemsData.length === 0) {
-        showEmptyMessage(list, 'No expenses found');
+        showEmptyMessage(list, getEmptyStateMessage());
         return;
       }
 
@@ -871,7 +954,10 @@
       empty.textContent = message;
       empty.style.cssText = 'color: #8792a2; padding: 20px; text-align: center;';
       listElement.appendChild(empty);
-      document.getElementById('paginationControls').style.display = 'none';
+      const paginationControls = document.getElementById('paginationControls');
+      if (paginationControls) {
+        paginationControls.style.display = 'none';
+      }
     }
 
     function updatePaginationControls() {
@@ -927,11 +1013,11 @@
     }
 
     function filterByCategory(items) {
-      const now = new Date();
-      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
       const startDate = getSelectedStartDate();
-      const hasDateRangeFilter = Boolean(startDate);
+      const endDate = getSelectedEndDate();
+      const hasDateRangeFilter = Boolean(startDate || endDate);
       const normalizedStartDate = startDate ? new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate()) : null;
+      const normalizedEndDate = endDate ? new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate()) : null;
 
       return items.filter(item => {
         const itemDate = new Date(item.createdAt);
@@ -940,7 +1026,9 @@
         const normalizedItemDate = new Date(itemDate.getFullYear(), itemDate.getMonth(), itemDate.getDate());
 
         if (hasDateRangeFilter) {
-          return normalizedItemDate >= normalizedStartDate && normalizedItemDate <= today;
+          const meetsStart = !normalizedStartDate || normalizedItemDate >= normalizedStartDate;
+          const meetsEnd = !normalizedEndDate || normalizedItemDate <= normalizedEndDate;
+          return meetsStart && meetsEnd;
         }
 
         return true;

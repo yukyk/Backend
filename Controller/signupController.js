@@ -35,6 +35,8 @@ function generateAccessToken(id, isPremium, premiumTier = 0) {
 
 }
 
+exports.generateAccessToken = generateAccessToken;
+
 exports.login = async (req, res) => {
     try{
       const { email, password } = req.body;

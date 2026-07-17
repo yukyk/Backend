@@ -345,6 +345,40 @@ function goToPremium() {
 }
 window.goToPremium = goToPremium;
 
+async function downgradeMembership() {
+  if (!checkAuth()) return;
+  if (!confirm('Switch your account back to the free plan and remove premium access now?')) return;
+
+  const downgradeBtn = document.getElementById('downgradeBtn');
+  if (downgradeBtn) {
+    downgradeBtn.disabled = true;
+    downgradeBtn.textContent = '⏳ Switching...';
+  }
+
+  try {
+    const response = await axios.post('/api/payment/downgrade-membership');
+    const { token } = response.data;
+
+    if (token) {
+      localStorage.setItem('token', token);
+    }
+
+    if (typeof window.checkPremiumStatus === 'function') {
+      await window.checkPremiumStatus();
+    }
+
+    showToast('You are now on the free plan.', 'info');
+  } catch (err) {
+    showToast(err.response?.data?.error || 'Unable to switch to the free plan.', 'error');
+  } finally {
+    if (downgradeBtn) {
+      downgradeBtn.disabled = false;
+      downgradeBtn.textContent = '⬇ Switch to Free';
+    }
+  }
+}
+window.downgradeMembership = downgradeMembership;
+
 async function showLeaderboard() {
   try {
     const res = await axios.get('/api/auth/leaderboard');

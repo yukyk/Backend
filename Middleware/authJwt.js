@@ -26,9 +26,8 @@ module.exports = async function (req, res, next) {
       return res.status(401).json({ error: 'User not found' });
     }
 
-    const isPremiumFromToken = Boolean(payload.isPremium || payload.premiumTier > 0);
-    const isPremium = Boolean(user.isPremium || isPremiumFromToken);
-    const premiumTier = user.premiumTier || payload.premiumTier || 0;
+    const isPremium = Boolean(user.isPremium);
+    const premiumTier = Number(user.premiumTier || 0);
 
     req.user = {
       userId: user._id.toString(),

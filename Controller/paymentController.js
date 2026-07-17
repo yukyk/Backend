@@ -1,6 +1,7 @@
 const Order = require("../Models/orderModel");
 const Signup = require("../Models/signupModel");
 const cashfreeService = require("../services/cashfreeService"); // Double check this path matches your service location
+const { generateAccessToken } = require("./signupController");
 
 function generateOrderId() {
     return `ORDER_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`.toUpperCase();
@@ -115,6 +116,33 @@ exports.verifyPayment = async (req, res) => {
 
     } catch (error) {
         console.error("🔴 Error inside verifyPayment:", error.message);
+        return res.status(500).json({ error: error.message });
+    }
+};
+
+exports.downgradeToFree = async (req, res) => {
+    try {
+        const userId = req.user && req.user.userId;
+
+        if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+        const user = await Signup.findById(userId);
+        if (!user) return res.status(404).json({ error: 'User not found' });
+
+        user.isPremium = false;
+        user.premiumTier = 0;
+        await user.save();
+
+        const token = generateAccessToken(user._id, user.isPremium, user.premiumTier || 0);
+
+        return res.status(200).json({
+            message: 'Membership downgraded to free successfully',
+            isPremium: false,
+            premiumTier: 0,
+            token
+        });
+    } catch (error) {
+        console.error('🔴 Error inside downgradeToFree:', error.message);
         return res.status(500).json({ error: error.message });
     }
 };

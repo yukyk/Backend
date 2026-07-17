@@ -39,6 +39,7 @@ router.get('/debug', authJwt, (req, res) => {
 router.post('/create-order', authJwt, paymentController.createPaymentOrder);
 router.post('/verify-payment', authJwt, paymentController.verifyPayment);
 router.post('/update-status', authJwt, paymentController.updatePaymentStatus);
+router.post('/downgrade-membership', authJwt, paymentController.downgradeToFree);
 router.get('/history', authJwt, paymentController.getPaymentHistory);
 router.get('/premium-status', authJwt, paymentController.getPremiumStatus);
 
