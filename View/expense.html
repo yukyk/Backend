@@ -435,13 +435,13 @@
         <h2 class="expense-section-title" id="listTitle">
           📋 All Expenses
         </h2>
-        <div style="display: flex; justify-content: flex-end; align-items: center; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
+        <div style="display: flex; justify-content: flex-start; align-items: center; gap: 10px; margin-bottom: 15px; flex-wrap: nowrap; overflow-x: auto; white-space: nowrap;">
           <label for="dateRangeStart" style="font-weight: 600; color: #6b7385;">From:</label>
-          <input type="date" id="dateRangeStart" onchange="applyDateRangeFilter()" style="padding: 8px 12px; border: 2px solid #e3e8ee; border-radius: 6px; font-size: 14px; cursor: pointer;">
+          <input type="date" id="dateRangeStart" onchange="applyDateRangeFilter()" style="padding: 8px 10px; min-width: 150px; border: 2px solid #e3e8ee; border-radius: 6px; font-size: 14px; cursor: pointer;">
           <label for="dateRangeEnd" style="font-weight: 600; color: #6b7385;">To:</label>
-          <input type="date" id="dateRangeEnd" onchange="applyDateRangeFilter()" style="padding: 8px 12px; border: 2px solid #e3e8ee; border-radius: 6px; font-size: 14px; cursor: pointer;">
+          <input type="date" id="dateRangeEnd" onchange="applyDateRangeFilter()" style="padding: 8px 10px; min-width: 150px; border: 2px solid #e3e8ee; border-radius: 6px; font-size: 14px; cursor: pointer;">
           <label for="monthFilter" style="font-weight: 600; color: #6b7385;">Month:</label>
-          <select id="monthFilter" onchange="applyDateRangeFilter()" style="padding: 8px 12px; border: 2px solid #e3e8ee; border-radius: 6px; font-size: 14px; cursor: pointer;">
+          <select id="monthFilter" onchange="applyDateRangeFilter()" style="padding: 8px 12px; min-width: 145px; border: 2px solid #e3e8ee; border-radius: 6px; font-size: 14px; cursor: pointer;">
             <option value="">All months</option>
             <option value="1">January</option>
             <option value="2">February</option>
@@ -457,9 +457,11 @@
             <option value="12">December</option>
           </select>
           <label for="yearFilter" style="font-weight: 600; color: #6b7385;">Year:</label>
-          <select id="yearFilter" onchange="applyDateRangeFilter()" style="padding: 8px 12px; border: 2px solid #e3e8ee; border-radius: 6px; font-size: 14px; cursor: pointer;"></select>
-          <button type="button" onclick="resetDateFilters()" style="padding: 8px 12px; border: 2px solid #e3e8ee; border-radius: 6px; font-size: 14px; cursor: pointer; background: #fff;">Reset</button>
-          <button type="button" id="exportBtn" onclick="exportExpenses()" style="padding: 8px 12px; border: 2px solid #635BFF; border-radius: 6px; font-size: 14px; cursor: pointer; background: #635BFF; color: white;">⬇ Export</button>
+          <select id="yearFilter" onchange="applyDateRangeFilter()" style="padding: 8px 12px; min-width: 120px; border: 2px solid #e3e8ee; border-radius: 6px; font-size: 14px; cursor: pointer;">
+            <option value="">All years</option>
+          </select>
+          <button type="button" onclick="resetDateFilters()" style="padding: 8px 14px; min-width: 90px; border: 2px solid #e3e8ee; border-radius: 6px; font-size: 14px; cursor: pointer; background: #fff;">Reset</button>
+          <button type="button" id="exportBtn" onclick="exportExpenses()" style="padding: 8px 14px; min-width: 110px; border: 2px solid #635BFF; border-radius: 6px; font-size: 14px; cursor: pointer; background: #635BFF; color: white;">⬇ Export</button>
           <label for="itemsPerPage" style="font-weight: 600; color: #6b7385;">Show:</label>
           <select id="itemsPerPage" onchange="changeItemsPerPage()" style="padding: 8px 12px; border: 2px solid #e3e8ee; border-radius: 6px; font-size: 14px; cursor: pointer;">
             <option value="5">5 items</option>
